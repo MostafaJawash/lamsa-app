@@ -1,30 +1,81 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lamsa_app/app.dart';
+import 'package:lamsa_app/core/storage/token_storage.dart';
+import 'package:lamsa_app/core/strings.dart';
+import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
+import 'package:lamsa_app/features/auth/data/auth_api.dart';
+import 'package:lamsa_app/features/auth/data/google_auth_service.dart';
+import 'package:lamsa_app/features/catalog/data/catalog_api.dart';
+import 'package:lamsa_app/features/notifications/data/devices_api.dart';
+import 'package:lamsa_app/features/notifications/data/push_service.dart';
+import 'package:mocktail/mocktail.dart';
 
-import 'package:lamsa_app/main.dart';
+class _MockAuthApi extends Mock implements AuthApi {}
+
+class _MockCatalogApi extends Mock implements CatalogApi {}
+
+class _MockDevicesApi extends Mock implements DevicesApi {}
+
+class _MockGoogle extends Mock implements GoogleAuthService {}
+
+class _EmptyStorage implements TokenStorage {
+  @override
+  Future<StoredTokens?> read() async => null;
+
+  @override
+  Future<void> write(StoredTokens tokens) async {}
+
+  @override
+  Future<void> clear() async {}
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  late AppDependencies deps;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  setUp(() {
+    final authApi = _MockAuthApi();
+    final catalog = _MockCatalogApi();
+    when(catalog.ping).thenAnswer((_) async {});
+    final devices = _MockDevicesApi();
+    final push = PushService(devices);
+    deps = AppDependencies(
+      session: SessionCubit(
+        api: authApi,
+        storage: _EmptyStorage(),
+        push: push,
+      ),
+      authApi: authApi,
+      catalogApi: catalog,
+      devicesApi: devices,
+      push: push,
+      google: _MockGoogle(),
+    );
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  testWidgets('boots to the RTL Arabic home placeholder', (tester) async {
+    await tester.pumpWidget(LamsaApp(deps: deps));
+    await deps.session.restore();
+    await tester.pumpAndSettle();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text(Strings.home), findsWidgets);
+    expect(find.text(Strings.serverReachable), findsOneWidget);
+
+    final context = tester.element(find.byType(Scaffold).first);
+    expect(Directionality.of(context), TextDirection.rtl);
+    expect(Localizations.localeOf(context), const Locale('ar'));
+  });
+
+  testWidgets('protected route redirects to login when signed out',
+      (tester) async {
+    await tester.pumpWidget(LamsaApp(deps: deps));
+    await deps.session.restore();
+    await tester.pumpAndSettle();
+
+    deps.router.go('/cart');
+    await tester.pumpAndSettle();
+
+    expect(find.text(Strings.login), findsWidgets);
+    expect(find.text(Strings.cart), findsNothing);
   });
 }

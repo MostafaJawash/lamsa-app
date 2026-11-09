@@ -46,3 +46,21 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Secrets and per-developer config
+env/*.json
+!env/*.example.json
+.env
+.env.*
+!.env.example
+
+# Real Firebase config (register the apps in the Firebase console, then drop these in)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+ios/firebase_app_id_file.json
+lib/firebase_options.dart
+
+# Android signing
+*.jks
+*.keystore
+key.properties
