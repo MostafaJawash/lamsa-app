@@ -9,6 +9,8 @@ import 'package:lamsa_app/core/storage/token_storage.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/app_theme.dart';
 import 'package:lamsa_app/core/widgets/app_messenger.dart';
+import 'package:lamsa_app/features/account/data/addresses_api.dart';
+import 'package:lamsa_app/features/account/data/addresses_repository.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
 import 'package:lamsa_app/features/auth/data/auth_api.dart';
 import 'package:lamsa_app/features/auth/data/google_auth_service.dart';
@@ -22,6 +24,7 @@ import 'package:lamsa_app/features/favorites/cubit/favorites_cubit.dart';
 import 'package:lamsa_app/features/favorites/presentation/favorites_screen.dart';
 import 'package:lamsa_app/features/notifications/data/devices_api.dart';
 import 'package:lamsa_app/features/notifications/data/push_service.dart';
+import 'package:lamsa_app/features/orders/data/orders_api.dart';
 
 /// Everything the widget tree needs, built once at startup (and replaceable
 /// with fakes in tests).
@@ -36,6 +39,9 @@ final class AppDependencies {
     required this.cart,
     required this.favorites,
     required this.favoritesDeps,
+    required this.cartApi,
+    required this.ordersApi,
+    required this.addresses,
   }) : router = buildRouter(session);
 
   /// Production wiring. The Dio/session/auth-API cycle is broken with lazy
@@ -64,6 +70,8 @@ final class AppDependencies {
     void mergeToast(MergeOutcome o) => showMergeToast(o, () => deps.router.go(Routes.cart));
     late final CartCubit cart;
     late final FavoritesCubit favorites;
+    final ordersApi = OrdersApi(dio);
+    final addresses = AddressesRepository(AddressesApi(dio));
     // The real guest-data merger (phase 3): merges, tells the shopper, then
     // switches the cart and favorites to the backend.
     final merger = CommerceMerger(
@@ -88,6 +96,7 @@ final class AppDependencies {
       onSignedOut: () async {
         await google.signOut();
         catalog.clear();
+        addresses.clear();
       },
     );
     cart = CartCubit(
@@ -115,6 +124,9 @@ final class AppDependencies {
       cart: cart,
       favorites: favorites,
       favoritesDeps: FavoritesDeps.of(catalogApi, cartApi, store),
+      cartApi: cartApi,
+      ordersApi: ordersApi,
+      addresses: addresses,
     );
     return deps;
   }
@@ -128,6 +140,9 @@ final class AppDependencies {
   final CartCubit cart;
   final FavoritesCubit favorites;
   final FavoritesDeps favoritesDeps;
+  final CartApi cartApi;
+  final OrdersApi ordersApi;
+  final AddressesRepository addresses;
   final GoRouter router;
 }
 
@@ -146,6 +161,9 @@ class LamsaApp extends StatelessWidget {
         RepositoryProvider.value(value: deps.push),
         RepositoryProvider.value(value: deps.google),
         RepositoryProvider.value(value: deps.favoritesDeps),
+        RepositoryProvider.value(value: deps.cartApi),
+        RepositoryProvider.value(value: deps.ordersApi),
+        RepositoryProvider.value(value: deps.addresses),
       ],
       child: MultiBlocProvider(
         providers: [

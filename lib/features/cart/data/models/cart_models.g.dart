@@ -154,6 +154,40 @@ Map<String, dynamic> _$CartNoticeToJson(CartNotice instance) =>
       'reason': instance.reason,
     };
 
+DeliveryQuote _$DeliveryQuoteFromJson(Map<String, dynamic> json) =>
+    DeliveryQuote(
+      code: json['code'] as String,
+      name: json['name'] as String,
+      currency: json['currency'] as String,
+      description: json['description'] as String?,
+      fee: json['fee'] as String? ?? '0.00',
+      isFree: json['is_free'] as bool? ?? false,
+      freeFrom: json['free_from'] as String?,
+      amountToFreeShipping: json['amount_to_free_shipping'] as String?,
+      requiresAddress: json['requires_address'] as bool? ?? true,
+      feePaidToCarrier: json['fee_paid_to_carrier'] as bool? ?? false,
+      totals:
+          (json['totals'] as List<dynamic>?)
+              ?.map((e) => CurrencyAmount.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+
+Map<String, dynamic> _$DeliveryQuoteToJson(DeliveryQuote instance) =>
+    <String, dynamic>{
+      'code': instance.code,
+      'name': instance.name,
+      'description': instance.description,
+      'currency': instance.currency,
+      'fee': instance.fee,
+      'is_free': instance.isFree,
+      'free_from': instance.freeFrom,
+      'amount_to_free_shipping': instance.amountToFreeShipping,
+      'requires_address': instance.requiresAddress,
+      'fee_paid_to_carrier': instance.feePaidToCarrier,
+      'totals': instance.totals.map((e) => e.toJson()).toList(),
+    };
+
 Cart _$CartFromJson(Map<String, dynamic> json) => Cart(
   lines:
       (json['lines'] as List<dynamic>?)
@@ -184,6 +218,12 @@ Cart _$CartFromJson(Map<String, dynamic> json) => Cart(
           ?.map((e) => CartNotice.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
+  deliveryQuotes:
+      (json['delivery_quotes'] as List<dynamic>?)
+          ?.map((e) => DeliveryQuote.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  selectedDeliveryMethodCode: json['selected_delivery_method_code'] as String?,
 );
 
 Map<String, dynamic> _$CartToJson(Cart instance) => <String, dynamic>{
@@ -196,6 +236,8 @@ Map<String, dynamic> _$CartToJson(Cart instance) => <String, dynamic>{
   'can_checkout': instance.canCheckout,
   'issues_count': instance.issuesCount,
   'notices': instance.notices.map((e) => e.toJson()).toList(),
+  'delivery_quotes': instance.deliveryQuotes.map((e) => e.toJson()).toList(),
+  'selected_delivery_method_code': instance.selectedDeliveryMethodCode,
 };
 
 MergeReportItem _$MergeReportItemFromJson(Map<String, dynamic> json) =>

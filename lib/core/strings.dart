@@ -138,7 +138,6 @@ abstract final class Strings {
   static const cartTotal = 'الإجمالي';
   static const cartDelivery = 'التوصيل';
   static const cartDeliveryNext = 'يُحدَّد في الخطوة التالية';
-  static const cartCheckoutSoon = 'إتمام الطلب قريبًا';
   static const cartFixFirst = 'حدّث سلتك أولًا لتتمكن من إتمام الطلب.';
   static const cartCheckoutHint = 'اختر طريقة التوصيل في الخطوة التالية.';
   static const cartRemove = 'احذف';
@@ -203,6 +202,193 @@ abstract final class Strings {
   static String toastLow(int n) => 'لم يتبقَّ سوى $n';
   static String toastMax(int n) => 'الحد الأقصى $n';
   static const badgeOverflow = '99+';
+
+  // Checkout.
+  static const checkoutTitle = 'إتمام الطلب';
+  static const checkoutAddress = 'عنوان التوصيل';
+  static const checkoutDelivery = 'طريقة التوصيل';
+  static const checkoutPayment = 'الدفع';
+  static const checkoutCod = 'الدفع عند الاستلام';
+  static const checkoutCodHint =
+      'تدفع عند وصول الطلب، بالعملة أو العملات الظاهرة في مجموع طلبك.';
+  static const checkoutExtras = 'ملاحظات الطلب';
+  static const checkoutNotes = 'ملاحظات على الطلب';
+  static const checkoutNotesHint = 'مثلًا: الاتصال قبل الوصول';
+  static const checkoutGift = 'إضافة رسالة هدية';
+  static const checkoutGiftLabel = 'رسالة الهدية';
+  static const checkoutGiftHint = 'اكتب الرسالة التي تريد إرفاقها بالطلب';
+  static const checkoutAddAddress = '+ إضافة عنوان جديد';
+  static const checkoutNoAddress = 'أضف عنوان توصيل لمتابعة الطلب.';
+  static const checkoutDeliveryNeedsAddress =
+      'اختر عنوان التوصيل لتظهر طرق التوصيل المتاحة.';
+  static const checkoutNoMethods = 'لا تتوفر طريقة توصيل لهذا العنوان حاليًا.';
+  static const checkoutYourOrder = 'طلبك';
+  static const checkoutDeliveryPending = 'يُحدَّد عند اختيار طريقة التوصيل';
+  static const checkoutCarrierPaid =
+      'تُدفع أجرة الشحن لشركة الشحن عند الاستلام';
+  static const checkoutPaidToCarrier = 'تُدفع للناقل';
+  static const checkoutFree = 'مجاني';
+  static const checkoutConfirm = 'تأكيد الطلب';
+  static const checkoutConfirming = 'جارٍ تأكيد الطلب…';
+  static const checkoutNotifyHint = 'سيصلك إشعار عند كل تغيير في حالة الطلب.';
+  static const checkoutNeedAddress = 'اختر عنوان التوصيل لإتمام الطلب.';
+  static const checkoutNeedMethod = 'اختر طريقة التوصيل لإتمام الطلب.';
+  static const checkoutPriceChanged =
+      'تغيّرت الأسعار أو المجاميع منذ آخر عرض. راجع المجاميع الجديدة ثم أكّد الطلب مرة أخرى.';
+  static const checkoutMethodChanged =
+      'لم تعد طريقة التوصيل المختارة متاحة لهذا العنوان. اختر طريقة توصيل من القائمة ثم أكّد الطلب.';
+  static const checkoutAddressInvalid =
+      'تعذّر استخدام عنوان التوصيل المختار. اختر عنوانًا آخر أو أضف عنوانًا جديدًا.';
+  static String checkoutNotesTooLong(int max) =>
+      'يجب ألا تتجاوز الملاحظات $max حرف.';
+  static const checkoutUnavailable =
+      'تعذّر تحميل صفحة إتمام الطلب الآن، يُرجى المحاولة لاحقًا';
+
+  // Order confirmation.
+  static const successTitle = 'تم تأكيد طلبك';
+  static const successNumber = 'رقم الطلب';
+  static const successTrack = 'تتبّع الطلب';
+  static const successContinue = 'متابعة التسوق';
+
+  // Addresses.
+  static const addresses = 'عناويني';
+  static const addressesSub = 'احفظ عناوينك لتسريع إتمام طلباتك.';
+  static const addressesAdd = '+ عنوان جديد';
+  static const addressesAddFirst = 'إضافة عنوان';
+  static const addressesNewTitle = 'عنوان جديد';
+  static const addressesEditTitle = 'تعديل العنوان';
+  static const addressesDefault = 'افتراضي';
+  static const addressesSetDefault = 'تعيين كافتراضي';
+  static const addressesEdit = 'تعديل';
+  static const addressesDelete = 'حذف';
+  static const addressesDeleteTitle = 'حذف العنوان؟';
+  static String addressesDeleteText(String label) =>
+      'سيُحذف عنوان «$label» من حسابك، ولن تتأثر طلباتك السابقة.';
+  static const addressesEmptyTitle = 'لا توجد عناوين محفوظة';
+  static const addressesEmptyText = 'أضف عنوانًا ليسهل عليك إتمام طلباتك.';
+  static const addressesHasLocation = 'الموقع محدد على الخريطة';
+  static const addressesUnavailable =
+      'تعذّر تحميل عناوينك الآن، يُرجى المحاولة لاحقًا';
+  static const governoratesUnavailable =
+      'تعذّر تحميل قائمة المحافظات الآن، يُرجى المحاولة لاحقًا.';
+  static const toastAddressSaved = 'تم حفظ العنوان';
+  static const toastAddressDeleted = 'تم حذف العنوان';
+  static const toastAddressDefault = 'تم تعيين العنوان كافتراضي';
+
+  // Address form.
+  static const afLabel = 'اسم العنوان (اختياري)';
+  static const afLabelHint = 'مثلًا: البيت أو العمل';
+  static const afGovernorate = 'المحافظة';
+  static const afGovernorateHint = 'اختر المحافظة';
+  static const afArea = 'المنطقة أو الحي (اختياري)';
+  static const afDetails = 'تفاصيل العنوان';
+  static const afDetailsHint = 'الشارع، البناء، الطابق، أقرب معلم';
+  static const afDetailsHelp = 'اكتب ما يساعد المندوب على الوصول إليك.';
+  static const afNotes = 'ملاحظات للتوصيل (اختياري)';
+  static const afMakeDefault = 'تعيين كعنوان افتراضي';
+  static const afSave = 'حفظ العنوان';
+  static String afCounter(int n, int max) => '$n / $max';
+  static String afErrLabelLong(int max) =>
+      'يجب ألا يتجاوز اسم العنوان $max حرفًا.';
+  static const afErrGovernorateRequired = 'اختر المحافظة.';
+  static const afErrGovernorateUnknown = 'المحافظة المختارة غير مدعومة.';
+  static String afErrAreaLong(int max) => 'يجب ألا تتجاوز المنطقة $max حرف.';
+  static const afErrDetailsRequired = 'اكتب تفاصيل العنوان.';
+  static String afErrDetailsShort(int min) => 'اكتب $min أحرف على الأقل.';
+  static String afErrDetailsLong(int max) =>
+      'يجب ألا تتجاوز التفاصيل $max حرف.';
+  static String afErrNotesLong(int max) => 'يجب ألا تتجاوز الملاحظات $max حرف.';
+  static const afErrLocationInvalid = 'الموقع المحدد غير صالح أو خارج سوريا.';
+  static const afErrInvalid = 'القيمة غير صحيحة.';
+
+  // Map picker.
+  static const mapTitle = 'الموقع على الخريطة';
+  static const mapOptional = 'اختياري';
+  static const mapHelp =
+      'اضغط على الخريطة لوضع الدبوس، ثم اسحبه لتعديل موقعه.';
+  static const mapUseMyLocation = 'استخدم موقعي الحالي';
+  static const mapRemoveLocation = 'إزالة الموقع';
+  static const mapLocating = 'جارٍ تحديد موقعك…';
+  static const mapLocated = 'تم تحديد موقعك على الخريطة.';
+  static const mapPlaced = 'تم وضع الدبوس على الخريطة.';
+  static const mapMoved = 'تم تحريك الدبوس.';
+  static const mapRemoved = 'أُزيل الموقع من العنوان.';
+  static const mapDenied =
+      'لم يُسمح بالوصول إلى موقعك. فعّل إذن الموقع، أو ضع الدبوس يدويًا على الخريطة.';
+  static const mapUnavailable =
+      'تعذّر تحديد موقعك. ضع الدبوس يدويًا على الخريطة.';
+  static const mapOutside = 'الموقع المحدد خارج سوريا. اختر نقطة داخل سوريا.';
+  static const mapTilesFailed =
+      'تعذّر تحميل الخريطة. يمكنك إكمال العنوان بدونها.';
+  // The credit OpenStreetMap's tile policy asks for, in its own wording.
+  static const mapAttribution = '© OpenStreetMap';
+
+  // Orders.
+  static String orderNumber(int id) => 'طلب #$id';
+  static String orderPlacedOn(String date) => 'تاريخ الطلب: $date';
+  static const ordersUnavailable =
+      'تعذّر تحميل طلباتك الآن، يُرجى المحاولة لاحقًا';
+  static const ordersFilterAll = 'الكل';
+  static const ordersFilterActive = 'قيد التنفيذ';
+  static const ordersFilterCompleted = 'مكتملة';
+  static const ordersFilterCancelled = 'ملغاة';
+  static const ordersEmptyTitle = 'لا توجد طلبات بعد';
+  static const ordersEmptyFiltered = 'لا توجد طلبات في هذا التصنيف';
+  static const ordersStartShopping = 'ابدأ التسوق';
+
+  // Order detail.
+  static const odTimeline = 'مراحل الطلب';
+  static String odCancelReasonShown(String reason) => 'السبب: $reason';
+  static const odItems = 'منتجات الطلب';
+  static const odDelivery = 'طريقة التوصيل';
+  static const odAddress = 'العنوان';
+  static const odPickup = 'الاستلام';
+  static const odPayment = 'الدفع';
+  static const odCod = 'عند الاستلام';
+  static const odPaid = 'تم الدفع';
+  static const odRefunded = 'أُعيد المبلغ';
+  static const odViewOnMap = 'عرض على الخريطة';
+  static const odCancel = 'إلغاء الطلب';
+  static const odCancelTitle = 'إلغاء الطلب؟';
+  static const odCancelText =
+      'سيُلغى طلبك وتعود المنتجات إلى المخزون. لا يمكن التراجع بعد التأكيد.';
+  static const odCancelReason = 'سبب الإلغاء (اختياري)';
+  static const odCancelConfirm = 'تأكيد الإلغاء';
+  static const odKeep = 'تراجع';
+  static const odReorder = 'إعادة الطلب';
+  static const odReorderNothing = 'لم يُضَف أي منتج إلى السلة.';
+  static const toastOrderCancelled = 'تم إلغاء الطلب';
+
+  // Account menu and settings.
+  static const accountOrders = 'طلباتي';
+  static const accountAddresses = 'عناويني';
+  static const accountProfile = 'بياناتي';
+  static const accountPhone = 'رقم الهاتف';
+  static const accountPassword = 'كلمة المرور';
+  static const accountLogoutAll = 'تسجيل الخروج من كل الأجهزة';
+  static const logoutAllTitle = 'الخروج من كل الأجهزة؟';
+  static const logoutAllText =
+      'ستنتهي جلساتك على كل الأجهزة، بما فيها هذا الجهاز، وستحتاج إلى تسجيل الدخول من جديد.';
+  static const logoutAllConfirm = 'تسجيل الخروج';
+  static const profileSave = 'حفظ البيانات';
+  static const profileEmail = 'البريد الإلكتروني (اختياري)';
+  static const phoneCurrent = 'رقمك الحالي:';
+  static const phoneHintPhone =
+      'رقم هاتفك هو ما تسجّل به الدخول. أدخل كلمة مرورك الحالية لتأكيد التغيير.';
+  static const phoneHintGoogle =
+      'حسابك مرتبط بـ Google، لذلك لا تحتاج إلى كلمة مرور لتغيير الرقم.';
+  static const phoneNew = 'رقم الهاتف الجديد';
+  static const phoneSave = 'تغيير الرقم';
+  static const passwordHint =
+      'عند تغيير كلمة المرور تنتهي جلساتك على الأجهزة الأخرى.';
+  static const passwordGoogleAccount =
+      'حسابك مرتبط بـ Google، ولا يملك كلمة مرور في المتجر.';
+  static const errEmailInvalid = 'البريد الإلكتروني غير صحيح.';
+  static String errEmailLong(int max) =>
+      'يجب ألا يتجاوز البريد الإلكتروني $max حرفًا.';
+  static const toastProfileSaved = 'تم حفظ بياناتك';
+  static const toastPhoneChanged = 'تم تغيير رقم الهاتف';
+  static const toastPasswordChanged = 'تم تغيير كلمة المرور';
 
   // Catalog: navigation and titles.
   static const categories = 'الأقسام';

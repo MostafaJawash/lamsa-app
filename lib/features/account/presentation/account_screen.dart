@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:lamsa_app/core/errors/api_error.dart';
 import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
+import 'package:lamsa_app/core/widgets/app_messenger.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
 import 'package:lamsa_app/features/auth/data/models/auth_user.dart';
 import 'package:lamsa_app/features/auth/presentation/session_gate.dart';
 
 /// Account tab: a guest sees the inline login prompt; a signed-in user sees
-/// their profile and the logout action. (Addresses, orders and settings come
-/// in later phases.)
+/// their profile, the menu (orders, addresses, profile, phone, password) and
+/// the logout actions.
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
 
@@ -49,6 +52,36 @@ class _AccountViewState extends State<_AccountView> {
     if (mounted && !ok) setState(() => _failed = true);
   }
 
+  Future<void> _logoutAll() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(Strings.logoutAllTitle),
+        content: const Text(Strings.logoutAllText),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(Strings.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(Strings.logoutAllConfirm),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _loggingOut = true);
+    final session = context.read<SessionCubit>();
+    try {
+      // The router sends the signed-out user to the login screen.
+      await session.signOutEverywhere();
+    } on Object catch (e) {
+      showToast(messageOf(e));
+    }
+    if (mounted) setState(() => _loggingOut = false);
+  }
+
   Future<void> _logout() async {
     setState(() => _loggingOut = true);
     // The router sends the signed-out user to the login screen.
@@ -79,16 +112,57 @@ class _AccountViewState extends State<_AccountView> {
               padding: const EdgeInsets.all(Spacing.pageGutter),
               children: [
                 _ProfileCard(user: user),
+                const SizedBox(height: Spacing.lg),
+                const _Menu(
+                  items: [
+                    (Icons.receipt_long_outlined, Strings.accountOrders, Routes.orders),
+                    (Icons.location_on_outlined, Strings.accountAddresses, Routes.addresses),
+                    (Icons.person_outline, Strings.accountProfile, Routes.profile),
+                    (Icons.phone_outlined, Strings.accountPhone, Routes.phone),
+                    (Icons.lock_outline, Strings.accountPassword, Routes.password),
+                  ],
+                ),
                 const SizedBox(height: Spacing.xl),
                 OutlinedButton.icon(
                   onPressed: _loggingOut ? null : _logout,
                   icon: const Icon(Icons.logout),
                   label: const Text(Strings.logout),
                 ),
+                const SizedBox(height: Spacing.sm),
+                TextButton(
+                  onPressed: _loggingOut ? null : _logoutAll,
+                  child: const Text(Strings.accountLogoutAll),
+                ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _Menu extends StatelessWidget {
+  const _Menu({required this.items});
+
+  final List<(IconData, String, String)> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Column(
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0) const Divider(height: 1),
+            ListTile(
+              leading: Icon(items[i].$1, color: context.lamsa.accent),
+              title: Text(items[i].$2),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () => context.push(items[i].$3),
+            ),
+          ],
+        ],
       ),
     );
   }

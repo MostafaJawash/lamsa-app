@@ -7,6 +7,8 @@ import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
 import 'package:lamsa_app/features/account/presentation/account_screen.dart';
+import 'package:lamsa_app/features/account/presentation/address_screens.dart';
+import 'package:lamsa_app/features/account/presentation/settings_screens.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
 import 'package:lamsa_app/features/auth/data/models/google_auth_result.dart';
 import 'package:lamsa_app/features/auth/presentation/auth_screens.dart';
@@ -18,6 +20,8 @@ import 'package:lamsa_app/features/catalog/presentation/product_list_screen.dart
 import 'package:lamsa_app/features/catalog/presentation/product_screen.dart';
 import 'package:lamsa_app/features/favorites/presentation/favorites_screen.dart';
 import 'package:lamsa_app/features/notifications/presentation/notifications_screen.dart';
+import 'package:lamsa_app/features/orders/data/models/order_models.dart';
+import 'package:lamsa_app/features/orders/presentation/checkout_screens.dart';
 import 'package:lamsa_app/features/orders/presentation/orders_screen.dart';
 import 'package:lamsa_app/features/shell/main_shell.dart';
 
@@ -156,7 +160,44 @@ GoRouter buildRouter(SessionCubit session) {
         builder: (_, state) =>
             ChangePasswordScreen(from: state.uri.queryParameters['from']),
       ),
+      GoRoute(
+        path: Routes.password,
+        builder: (_, _) => const ChangePasswordScreen(voluntary: true),
+      ),
+      GoRoute(path: Routes.profile, builder: (_, _) => const ProfileScreen()),
+      GoRoute(path: Routes.phone, builder: (_, _) => const PhoneScreen()),
+      GoRoute(
+        path: Routes.addresses,
+        builder: (_, _) => const AddressesScreen(),
+      ),
+      GoRoute(
+        path: Routes.addressForm,
+        // The form needs the governorates of whoever opened it.
+        redirect: (_, state) =>
+            state.extra is AddressFormArgs ? null : Routes.addresses,
+        builder: (_, state) =>
+            AddressFormScreen(args: state.extra! as AddressFormArgs),
+      ),
+      GoRoute(path: Routes.checkout, builder: (_, _) => const CheckoutScreen()),
+      GoRoute(
+        path: Routes.checkoutDone,
+        redirect: (_, state) =>
+            state.extra is OrderDetail ? null : Routes.orders,
+        builder: (_, state) =>
+            OrderSuccessScreen(order: state.extra! as OrderDetail),
+      ),
       GoRoute(path: Routes.orders, builder: (_, _) => const OrdersScreen()),
+      GoRoute(
+        path: '${Routes.orders}/:id',
+        redirect: (_, state) =>
+            int.tryParse(state.pathParameters['id'] ?? '') == null
+                ? Routes.orders
+                : null,
+        builder: (_, state) => OrderDetailScreen(
+          key: ValueKey(state.uri),
+          orderId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
       GoRoute(
         path: Routes.notifications,
         builder: (_, _) => const NotificationsScreen(),

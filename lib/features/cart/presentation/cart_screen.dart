@@ -351,7 +351,12 @@ class _CartLineTileState extends State<CartLineTile> {
                       ),
                     ),
                   const SizedBox(height: Spacing.sm),
-                  Row(
+                  // A wrap, not a row: large amounts (hundreds of thousands
+                  // of SYP) must not overflow next to the stepper.
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    runSpacing: Spacing.xs,
                     children: [
                       _Stepper(
                         quantity: quantity,
@@ -361,7 +366,6 @@ class _CartLineTileState extends State<CartLineTile> {
                             ? null
                             : () => _step(1),
                       ),
-                      const Spacer(),
                       if (line.issue == null)
                         Text(
                           formatAmount(line.lineTotal, line.currency),
@@ -467,10 +471,11 @@ class _Summary extends StatelessWidget {
             const Divider(height: Spacing.xl),
             _AmountRow(label: Strings.cartTotal, amounts: cart.totals, strong: true),
             const SizedBox(height: Spacing.lg),
-            // Checkout is a later phase: always disabled for now.
-            const FilledButton(
-              onPressed: null,
-              child: Text(Strings.cartCheckoutSoon),
+            // A guest is sent to login by the router and comes back here.
+            FilledButton(
+              onPressed:
+                  cart.canCheckout ? () => context.push(Routes.checkout) : null,
+              child: const Text(Strings.checkoutTitle),
             ),
             const SizedBox(height: Spacing.sm),
             Text(

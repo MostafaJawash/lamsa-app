@@ -1,5 +1,7 @@
 import 'package:lamsa_app/app.dart';
 import 'package:lamsa_app/core/storage/token_storage.dart';
+import 'package:lamsa_app/features/account/data/addresses_api.dart';
+import 'package:lamsa_app/features/account/data/addresses_repository.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
 import 'package:lamsa_app/features/auth/data/auth_api.dart';
 import 'package:lamsa_app/features/auth/data/google_auth_service.dart';
@@ -8,12 +10,14 @@ import 'package:lamsa_app/features/auth/data/models/auth_user.dart';
 import 'package:lamsa_app/features/auth/data/models/google_auth_result.dart';
 import 'package:lamsa_app/features/auth/data/models/token_pair.dart';
 import 'package:lamsa_app/features/cart/cubit/cart_cubit.dart';
+import 'package:lamsa_app/features/cart/data/cart_api.dart';
 import 'package:lamsa_app/features/cart/data/guest_store.dart';
 import 'package:lamsa_app/features/catalog/data/catalog_repository.dart';
 import 'package:lamsa_app/features/favorites/cubit/favorites_cubit.dart';
 import 'package:lamsa_app/features/favorites/presentation/favorites_screen.dart';
 import 'package:lamsa_app/features/notifications/data/devices_api.dart';
 import 'package:lamsa_app/features/notifications/data/push_service.dart';
+import 'package:lamsa_app/features/orders/data/orders_api.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../cart/cart_fakes.dart';
@@ -80,6 +84,8 @@ class FakeAuthApi implements AuthApi {
   Future<TokenPair> Function()? onComplete;
   Future<TokenPair> Function()? onChange;
   Future<AuthUser> Function()? onMe;
+  Future<AuthUser> Function()? onUpdateProfile;
+  Future<AuthUser> Function()? onChangePhone;
 
   void _log(String name, Map<String, Object?> body) {
     calls.add(name);
@@ -87,6 +93,21 @@ class FakeAuthApi implements AuthApi {
   }
 
   int count(String name) => calls.where((c) => c == name).length;
+
+  @override
+  Future<AuthUser> updateProfile({String? name, String? email}) async {
+    _log('updateProfile', {'name': name, 'email': email});
+    return (onUpdateProfile ?? () async => testUser())();
+  }
+
+  @override
+  Future<AuthUser> changePhone({
+    required String phone,
+    String? currentPassword,
+  }) async {
+    _log('changePhone', {'phone': phone, 'current_password': currentPassword});
+    return (onChangePhone ?? () async => testUser())();
+  }
 
   @override
   Future<TokenPair> login({
@@ -218,13 +239,16 @@ AppDependencies makeDeps({
   CartCubit? cart,
   FavoritesCubit? favorites,
   FavoritesDeps? favoritesDeps,
+  OrdersApi? ordersApi,
+  AddressesRepository? addresses,
+  CartApi? cartApi,
 }) {
   final store = MemoryGuestStore();
-  final cartApi = FakeCartApi(FakeShop([]));
-  final theCart = cart ?? CartCubit(api: cartApi, store: store, session: session);
+  final theCartApi = cartApi ?? FakeCartApi(FakeShop([]));
+  final theCart = cart ?? CartCubit(api: theCartApi, store: store, session: session);
   final theFavorites = favorites ??
       FavoritesCubit(
-        api: cartApi,
+        api: theCartApi,
         store: store,
         session: session,
         cart: theCart,
@@ -241,6 +265,13 @@ AppDependencies makeDeps({
     cart: theCart,
     favorites: theFavorites,
     favoritesDeps: favoritesDeps ??
-        FavoritesDeps(api: cartApi, store: store, lookup: (ids) async => const []),
+        FavoritesDeps(api: theCartApi, store: store, lookup: (ids) async => const []),
+    cartApi: theCartApi,
+    ordersApi: ordersApi ?? _MockOrdersApi(),
+    addresses: addresses ?? AddressesRepository(_MockAddressesApi()),
   );
 }
+
+class _MockOrdersApi extends Mock implements OrdersApi {}
+
+class _MockAddressesApi extends Mock implements AddressesApi {}

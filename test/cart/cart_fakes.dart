@@ -252,7 +252,7 @@ class FakeCartApi implements CartApi {
   }
 
   @override
-  Future<Cart> cart() async {
+  Future<Cart> cart({String? governorate, String? deliveryMethodCode}) async {
     _enter('cart');
     return _storedCart();
   }

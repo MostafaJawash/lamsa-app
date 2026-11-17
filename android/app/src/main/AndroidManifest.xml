@@ -1,4 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Needed by release builds (debug/profile builds add it implicitly):
+         without it the app cannot reach the backend or the map tiles. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Optional "use my current location" on the address map picker. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <application
         android:label="لمسة"
         android:name="${applicationName}"

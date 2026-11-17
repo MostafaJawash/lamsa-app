@@ -111,6 +111,14 @@ final class SessionCubit extends Cubit<SessionState> {
     );
   }
 
+  /// "Log out from all devices": ends every session of the account on the
+  /// server first, then signs out here. Unlike [signOut] it reports a failure
+  /// (the user stays signed in) so the caller can say it did not happen.
+  Future<void> signOutEverywhere() async {
+    await _api.logoutAll();
+    await signOut();
+  }
+
   /// Called when the refresh flow gave up; storage is already cleared.
   void expire() {
     if (state.status != SessionStatus.unauthenticated ||
@@ -137,6 +145,13 @@ final class SessionCubit extends Cubit<SessionState> {
   Future<void> passwordChangeRequired() async {
     if (!state.isAuthenticated || state.mustChangePassword) return;
     await refreshUser();
+  }
+
+  /// The profile changed (name, email, phone): keep the session's user fresh.
+  void updateUser(AuthUser user) {
+    if (state.isAuthenticated) {
+      emit(SessionState(SessionStatus.authenticated, user));
+    }
   }
 
   /// Loads `/users/me` (offline launches keep the session without a profile).

@@ -4,6 +4,7 @@ import 'package:lamsa_app/core/errors/api_error.dart';
 /// Form fields an error can land on.
 enum AuthField {
   name,
+  email,
   phone,
   password,
   currentPassword,
@@ -61,6 +62,7 @@ final class AuthFailure extends Equatable {
 /// Backend field names (VALIDATION_ERROR details) to form fields.
 const _backendFields = {
   'name': AuthField.name,
+  'email': AuthField.email,
   'phone': AuthField.phone,
   'password': AuthField.password,
   'current_password': AuthField.currentPassword,
@@ -107,6 +109,12 @@ AuthFailure mapAuthError(
       return options.credentialsField != null
           ? AuthFailure(fieldErrors: {options.credentialsField!: message})
           : form(FormErrorKind.generic);
+    case 'CURRENT_PASSWORD_REQUIRED':
+      return AuthFailure(
+        fieldErrors: {
+          options.credentialsField ?? AuthField.currentPassword: message,
+        },
+      );
     case 'CURRENT_PASSWORD_INCORRECT':
       return AuthFailure(
         fieldErrors: {

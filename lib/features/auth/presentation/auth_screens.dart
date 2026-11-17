@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
+import 'package:lamsa_app/core/widgets/app_messenger.dart';
 import 'package:lamsa_app/features/auth/cubit/auth_form_cubits.dart';
 import 'package:lamsa_app/features/auth/cubit/auth_form_state.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
@@ -470,9 +471,13 @@ class _CompleteProfileViewState extends State<_CompleteProfileView> {
 /// is the only reachable screen (the router guard enforces that), has no back
 /// button, and offers logout so the user is never trapped.
 class ChangePasswordScreen extends StatelessWidget {
-  const ChangePasswordScreen({this.from, super.key});
+  const ChangePasswordScreen({this.from, this.voluntary = false, super.key});
 
   final String? from;
+
+  /// Opened from the account menu (not forced by a temporary password): on
+  /// success it shows a toast and goes back instead of returning to [from].
+  final bool voluntary;
 
   @override
   Widget build(BuildContext context) {
@@ -481,15 +486,16 @@ class ChangePasswordScreen extends StatelessWidget {
         context.read<AuthApi>(),
         context.read<SessionCubit>(),
       ),
-      child: _ChangePasswordView(from: from),
+      child: _ChangePasswordView(from: from, voluntary: voluntary),
     );
   }
 }
 
 class _ChangePasswordView extends StatefulWidget {
-  const _ChangePasswordView({required this.from});
+  const _ChangePasswordView({required this.from, required this.voluntary});
 
   final String? from;
+  final bool voluntary;
 
   @override
   State<_ChangePasswordView> createState() => _ChangePasswordViewState();
@@ -520,17 +526,35 @@ class _ChangePasswordViewState extends State<_ChangePasswordView> {
     final forced = context.select<SessionCubit, bool>(
       (s) => s.state.mustChangePassword,
     );
+    final isGoogle = context.select<SessionCubit, bool>(
+      (s) => s.state.user?.authProvider == 'google',
+    );
     return PopScope(
       canPop: !forced,
       child: BlocListener<ChangePasswordCubit, AuthFormState>(
         listenWhen: (a, b) => !a.done && b.done,
-        listener: (context, _) => context.go(safeReturnPath(widget.from)),
+        listener: (context, _) {
+          if (widget.voluntary) {
+            showToast(Strings.toastPasswordChanged);
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(Routes.account);
+            }
+          } else {
+            context.go(safeReturnPath(widget.from));
+          }
+        },
         child: AuthScaffold(
           title: Strings.changePassword,
-          lead: Strings.changeLead,
+          lead: widget.voluntary ? null : Strings.changeLead,
           showBack: !forced,
           children: [
             if (forced) const AuthNotice(Strings.changeForcedNote),
+            if (widget.voluntary && isGoogle)
+              const AuthNotice(Strings.passwordGoogleAccount)
+            else ...[
+            if (widget.voluntary) const AuthNotice(Strings.passwordHint),
             BlocBuilder<ChangePasswordCubit, AuthFormState>(
               builder: (context, state) => Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -574,6 +598,7 @@ class _ChangePasswordViewState extends State<_ChangePasswordView> {
                 ],
               ),
             ),
+            ],
             const SizedBox(height: Spacing.lg),
             if (forced)
               TextButton(

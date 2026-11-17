@@ -93,11 +93,11 @@ void main() {
       expect(find.textContaining('425'), findsNothing);
       expect(find.textContaining('425.50'), findsNothing);
 
-      // No checkout yet: a disabled button.
+      // A cart without issues can go to checkout.
       final button = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, Strings.cartCheckoutSoon),
+        find.widgetWithText(FilledButton, Strings.checkoutTitle),
       );
-      expect(button.onPressed, isNull);
+      expect(button.onPressed, isNotNull);
       expect(find.text(Strings.cartCheckoutHint), findsOneWidget);
       expect(find.text(Strings.cartIssuesNotice), findsNothing);
     });
@@ -107,7 +107,7 @@ void main() {
       expect(find.text(Strings.cartEmptyTitle), findsOneWidget);
       expect(find.text(Strings.cartEmptyText), findsOneWidget);
       expect(find.widgetWithText(FilledButton, Strings.cartStartShopping), findsOneWidget);
-      expect(find.text(Strings.cartCheckoutSoon), findsNothing);
+      expect(find.text(Strings.checkoutTitle), findsNothing);
       expect(kit.api.calls, isEmpty); // no network for an empty guest cart
     });
 
@@ -152,7 +152,7 @@ void main() {
       expect(find.descendant(of: line('كريم الوجه'), matching: find.text(m('500.00', 'SYP'))), findsNothing);
       expect(find.text(Strings.items(1)), findsOneWidget); // only the USD perfume counts
       expect(
-        tester.widget<FilledButton>(find.widgetWithText(FilledButton, Strings.cartCheckoutSoon)).onPressed,
+        tester.widget<FilledButton>(find.widgetWithText(FilledButton, Strings.checkoutTitle)).onPressed,
         isNull,
       );
     });

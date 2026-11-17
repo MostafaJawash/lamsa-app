@@ -30,7 +30,20 @@ class CartApi {
 
   // ---- stored cart (signed in) ----
 
-  Future<Cart> cart() async => Cart.fromJson(await _send('GET', '/cart'));
+  /// With a [governorate] the cart carries only the delivery methods valid
+  /// there (`delivery_quotes`); with [deliveryMethodCode] the selected quote's
+  /// totals are the ones the customer confirms at checkout.
+  Future<Cart> cart({String? governorate, String? deliveryMethodCode}) async =>
+      Cart.fromJson(
+        await _send(
+          'GET',
+          '/cart',
+          query: {
+            'governorate': ?governorate,
+            'delivery_method_code': ?deliveryMethodCode,
+          },
+        ),
+      );
 
   Future<int> count() async {
     final json = await _send('GET', '/cart/count');

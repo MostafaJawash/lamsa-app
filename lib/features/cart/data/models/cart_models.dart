@@ -257,6 +257,62 @@ final class CartNotice extends Equatable {
       [code, message, itemId, productId, fromQuantity, toQuantity, reason];
 }
 
+/// One delivery method the backend offers for a governorate
+/// (`delivery_quotes` of `GET /cart?governorate=`). Everything shown about a
+/// method comes from here: nothing about Damascus or the provinces is decided
+/// on the device. [totals] are what the customer confirms (per currency).
+@JsonSerializable(fieldRename: FieldRename.snake, explicitToJson: true)
+final class DeliveryQuote extends Equatable {
+  const DeliveryQuote({
+    required this.code,
+    required this.name,
+    required this.currency,
+    this.description,
+    this.fee = '0.00',
+    this.isFree = false,
+    this.freeFrom,
+    this.amountToFreeShipping,
+    this.requiresAddress = true,
+    this.feePaidToCarrier = false,
+    this.totals = const [],
+  });
+
+  factory DeliveryQuote.fromJson(Map<String, dynamic> json) =>
+      _$DeliveryQuoteFromJson(json);
+
+  final String code;
+  final String name;
+  final String? description;
+  final String currency;
+  final String fee;
+  final bool isFree;
+  final String? freeFrom;
+  final String? amountToFreeShipping;
+  final bool requiresAddress;
+
+  /// The fee is paid to the carrier on delivery (provincial shipping): show
+  /// the backend's note instead of adding money to the order.
+  final bool feePaidToCarrier;
+  final List<CurrencyAmount> totals;
+
+  Map<String, dynamic> toJson() => _$DeliveryQuoteToJson(this);
+
+  @override
+  List<Object?> get props => [
+        code,
+        name,
+        description,
+        currency,
+        fee,
+        isFree,
+        freeFrom,
+        amountToFreeShipping,
+        requiresAddress,
+        feePaidToCarrier,
+        totals,
+      ];
+}
+
 /// The whole cart, computed by the backend: stored (`CartOut`), a guest
 /// preview (`CartPreviewOut`) or the result of a merge. Totals are one amount
 /// per currency and are never combined on the device.
@@ -272,6 +328,8 @@ final class Cart extends Equatable {
     this.canCheckout = false,
     this.issuesCount = 0,
     this.notices = const [],
+    this.deliveryQuotes = const [],
+    this.selectedDeliveryMethodCode,
   });
 
   factory Cart.fromJson(Map<String, dynamic> json) => _$CartFromJson(json);
@@ -290,6 +348,10 @@ final class Cart extends Equatable {
   final int issuesCount;
   final List<CartNotice> notices;
 
+  /// Methods valid for the requested governorate (empty without one).
+  final List<DeliveryQuote> deliveryQuotes;
+  final String? selectedDeliveryMethodCode;
+
   Cart copyWith({List<CartLine>? lines}) => Cart(
         lines: lines ?? this.lines,
         itemsCount: itemsCount,
@@ -300,6 +362,8 @@ final class Cart extends Equatable {
         canCheckout: canCheckout,
         issuesCount: issuesCount,
         notices: notices,
+        deliveryQuotes: deliveryQuotes,
+        selectedDeliveryMethodCode: selectedDeliveryMethodCode,
       );
 
   Map<String, dynamic> toJson() => _$CartToJson(this);
@@ -315,6 +379,8 @@ final class Cart extends Equatable {
         canCheckout,
         issuesCount,
         notices,
+        deliveryQuotes,
+        selectedDeliveryMethodCode,
       ];
 }
 
