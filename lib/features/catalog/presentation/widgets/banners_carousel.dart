@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lamsa_app/core/images/image_urls.dart';
+import 'package:lamsa_app/core/platform/external_links.dart';
 import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
@@ -12,10 +13,10 @@ const _saleTone = Color(0xFFB8174E);
 const _newTone = Color(0xFF2D1B2E);
 
 String _ctaLabel(BannerCta cta) => switch (cta) {
-      BannerCta.sale => Strings.bannerCtaSale,
-      BannerCta.newArrivals => Strings.bannerCtaNew,
-      BannerCta.discover => Strings.bannerCtaDefault,
-    };
+  BannerCta.sale => Strings.bannerCtaSale,
+  BannerCta.newArrivals => Strings.bannerCtaNew,
+  BannerCta.discover => Strings.bannerCtaDefault,
+};
 
 class _BannerTile extends StatelessWidget {
   const _BannerTile({
@@ -70,8 +71,9 @@ class _BannerTile extends StatelessWidget {
                           subtitle!,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.bodySmall!
-                              .copyWith(color: Colors.white70),
+                          style: theme.bodySmall!.copyWith(
+                            color: Colors.white70,
+                          ),
                         ),
                       ],
                       if (cta != null) ...[
@@ -87,8 +89,9 @@ class _BannerTile extends StatelessWidget {
                           ),
                           child: Text(
                             cta!,
-                            style: theme.labelMedium!
-                                .copyWith(color: background),
+                            style: theme.labelMedium!.copyWith(
+                              color: background,
+                            ),
                           ),
                         ),
                       ],
@@ -176,13 +179,20 @@ class _BannersCarouselState extends State<BannersCarousel> {
       for (final (i, b) in banners.indexed)
         () {
           final route = bannerRoute(b.link);
+          final url = bannerUrl(b.link);
           return _BannerTile(
             title: b.title,
             subtitle: b.subtitle,
             image: b.image,
-            cta: route == null ? null : _ctaLabel(bannerCta(b.link)),
+            cta: route == null && url == null
+                ? null
+                : _ctaLabel(bannerCta(b.link)),
             background: i.isEven ? _saleTone : _newTone,
-            onTap: route == null ? null : () => context.push(route),
+            onTap: route != null
+                ? () => context.push(route)
+                : url != null
+                ? () => ExternalLinks.open(url)
+                : null,
           );
         }(),
     ];

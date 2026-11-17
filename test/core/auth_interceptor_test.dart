@@ -39,22 +39,22 @@ class _FakeServer implements HttpClientAdapter {
   }
 
   ResponseBody _json(int status, Object body) => ResponseBody.fromString(
-        jsonEncode(body),
-        status,
-        headers: {
-          Headers.contentTypeHeader: [Headers.jsonContentType],
-        },
-      );
+    jsonEncode(body),
+    status,
+    headers: {
+      Headers.contentTypeHeader: [Headers.jsonContentType],
+    },
+  );
 
   @override
   void close({bool force = false}) {}
 }
 
 StoredTokens _tokens(String access, String refresh) => StoredTokens(
-      accessToken: access,
-      refreshToken: refresh,
-      accessExpiresAt: DateTime.now().add(const Duration(minutes: 10)),
-    );
+  accessToken: access,
+  refreshToken: refresh,
+  accessExpiresAt: DateTime.now().add(const Duration(minutes: 10)),
+);
 
 void main() {
   late _MemoryStorage storage;
@@ -83,51 +83,55 @@ void main() {
     expiredCalls = 0;
   });
 
-  test('concurrent 401s share exactly one refresh call (single-flight)',
-      () async {
-    final dio = makeDio((t) async {
-      await Future<void>.delayed(const Duration(milliseconds: 30));
-      expect(t, 'r1');
-      return _tokens('new', 'r2');
-    });
+  test(
+    'concurrent 401s share exactly one refresh call (single-flight)',
+    () async {
+      final dio = makeDio((t) async {
+        await Future<void>.delayed(const Duration(milliseconds: 30));
+        expect(t, 'r1');
+        return _tokens('new', 'r2');
+      });
 
-    final results = await Future.wait([
-      dio.get<Object?>('/a'),
-      dio.get<Object?>('/b'),
-      dio.get<Object?>('/c'),
-    ]);
+      final results = await Future.wait([
+        dio.get<Object?>('/a'),
+        dio.get<Object?>('/b'),
+        dio.get<Object?>('/c'),
+      ]);
 
-    expect(results.map((r) => r.statusCode), [200, 200, 200]);
-    expect(refreshCalls, 1);
-    expect(storage.tokens?.refreshToken, 'r2');
-    expect(expiredCalls, 0);
-  });
+      expect(results.map((r) => r.statusCode), [200, 200, 200]);
+      expect(refreshCalls, 1);
+      expect(storage.tokens?.refreshToken, 'r2');
+      expect(expiredCalls, 0);
+    },
+  );
 
-  test('unrecoverable refresh failure clears storage and ends the session',
-      () async {
-    final dio = makeDio((t) async {
-      throw DioException(
-        requestOptions: RequestOptions(),
-        response: Response<dynamic>(
+  test(
+    'unrecoverable refresh failure clears storage and ends the session',
+    () async {
+      final dio = makeDio((t) async {
+        throw DioException(
           requestOptions: RequestOptions(),
-          statusCode: 401,
+          response: Response<dynamic>(
+            requestOptions: RequestOptions(),
+            statusCode: 401,
+          ),
+        );
+      });
+
+      await expectLater(
+        dio.get<Object?>('/a'),
+        throwsA(
+          isA<DioException>().having(
+            (e) => (e.error as ApiError?)?.code,
+            'code',
+            'TOKEN_EXPIRED',
+          ),
         ),
       );
-    });
-
-    await expectLater(
-      dio.get<Object?>('/a'),
-      throwsA(
-        isA<DioException>().having(
-          (e) => (e.error as ApiError?)?.code,
-          'code',
-          'TOKEN_EXPIRED',
-        ),
-      ),
-    );
-    expect(storage.tokens, isNull);
-    expect(expiredCalls, 1);
-  });
+      expect(storage.tokens, isNull);
+      expect(expiredCalls, 1);
+    },
+  );
 
   test('transient refresh failure keeps the stored session', () async {
     final dio = makeDio((t) async {
@@ -142,8 +146,7 @@ void main() {
     expect(expiredCalls, 0);
   });
 
-  test('a token near expiry is refreshed before the request is sent',
-      () async {
+  test('a token near expiry is refreshed before the request is sent', () async {
     storage.tokens = StoredTokens(
       accessToken: 'old',
       refreshToken: 'r1',
@@ -157,4 +160,81 @@ void main() {
     expect(server.seenAuth, ['Bearer new']);
     expect(refreshCalls, 1);
   });
+
+  group('PASSWORD_CHANGE_REQUIRED (temporary password)', () {
+    Dio gateDio(
+      void Function() onGate, {
+      String code = 'PASSWORD_CHANGE_REQUIRED',
+    }) {
+      final dio = buildDio(
+        storage: storage,
+        baseUrl: 'http://test',
+        refresh: (t) async => _tokens('new', 'r2'),
+        onSessionExpired: () async => expiredCalls++,
+        onPasswordChangeRequired: () async => onGate(),
+      );
+      dio.httpClientAdapter = _GateServer(code);
+      return dio;
+    }
+
+    test(
+      'a 403 PASSWORD_CHANGE_REQUIRED is reported, and still surfaces',
+      () async {
+        storage.tokens = _tokens('good', 'r1');
+        var reported = 0;
+        final dio = gateDio(() => reported++);
+        await expectLater(
+          dio.get<Object?>('/cart'),
+          throwsA(
+            isA<DioException>().having(
+              (e) => (e.error as ApiError).code,
+              'code',
+              'PASSWORD_CHANGE_REQUIRED',
+            ),
+          ),
+        );
+        expect(reported, 1);
+        expect(
+          expiredCalls,
+          0,
+        ); // the session stays: only a password change is needed
+        expect(storage.tokens, isNotNull);
+      },
+    );
+
+    test('other 403s are not reported', () async {
+      storage.tokens = _tokens('good', 'r1');
+      var reported = 0;
+      final dio = gateDio(() => reported++, code: 'ADMIN_ONLY');
+      await expectLater(
+        dio.get<Object?>('/admin'),
+        throwsA(isA<DioException>()),
+      );
+      expect(reported, 0);
+    });
+  });
+}
+
+class _GateServer implements HttpClientAdapter {
+  _GateServer(this.code);
+
+  final String code;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async => ResponseBody.fromString(
+    jsonEncode({
+      'error': {'code': code, 'message': 'm', 'details': null},
+    }),
+    403,
+    headers: {
+      Headers.contentTypeHeader: [Headers.jsonContentType],
+    },
+  );
+
+  @override
+  void close({bool force = false}) {}
 }

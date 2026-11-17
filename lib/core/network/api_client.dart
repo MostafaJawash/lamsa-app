@@ -11,6 +11,7 @@ Dio buildDio({
   required TokenStorage storage,
   required TokenRefresher refresh,
   required Future<void> Function() onSessionExpired,
+  Future<void> Function()? onPasswordChangeRequired,
   String? baseUrl,
 }) {
   final dio = Dio(
@@ -28,6 +29,7 @@ Dio buildDio({
       storage: storage,
       refresh: refresh,
       onSessionExpired: onSessionExpired,
+      onPasswordChangeRequired: onPasswordChangeRequired,
     ),
   );
   dio.interceptors.add(ErrorMappingInterceptor());

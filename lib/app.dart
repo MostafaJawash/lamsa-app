@@ -38,18 +38,30 @@ final class AppDependencies {
       storage: storage,
       refresh: (token) => authApi.refresh(token),
       onSessionExpired: () async => session.expire(),
+      onPasswordChangeRequired: () => session.passwordChangeRequired(),
     );
     authApi = AuthApi(dio);
     final devicesApi = DevicesApi(dio);
     final push = PushService(devicesApi);
-    session = SessionCubit(api: authApi, storage: storage, push: push);
+    final google = createGoogleAuthService();
+    final catalog = CatalogRepository(CatalogApi(dio));
+    session = SessionCubit(
+      api: authApi,
+      storage: storage,
+      push: push,
+      // After a sign-out: forget the Google account and any cached catalog data.
+      onSignedOut: () async {
+        await google.signOut();
+        catalog.clear();
+      },
+    );
     return AppDependencies(
       session: session,
       authApi: authApi,
-      catalog: CatalogRepository(CatalogApi(dio)),
+      catalog: catalog,
       devicesApi: devicesApi,
       push: push,
-      google: GoogleSignInAuthService(),
+      google: google,
     );
   }
 

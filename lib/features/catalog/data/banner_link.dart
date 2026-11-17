@@ -1,11 +1,10 @@
+import 'package:lamsa_app/core/platform/external_links.dart';
 import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/features/catalog/data/models/catalog_models.dart';
 
-/// In-app route a banner leads to, or null when it is not tappable.
-///
-/// Mirrors lamsa-web's `linkTarget`. `url` links (and unknown or incomplete
-/// ones) are not tappable yet: opening external links needs a url_launcher
-/// dependency that is deferred.
+/// In-app route a banner leads to, or null when it has none (see [bannerUrl]
+/// for external links). Mirrors lamsa-web's `linkTarget`; unknown or
+/// incomplete links are not tappable.
 String? bannerRoute(BannerLink link) {
   final value = link.value?.trim();
   final hasValue = value != null && value.isNotEmpty;
@@ -19,11 +18,20 @@ String? bannerRoute(BannerLink link) {
   };
 }
 
+/// External `https` link of a `url` banner, opened outside the app. Anything
+/// that is not https is ignored (same rule as lamsa-web).
+Uri? bannerUrl(BannerLink link) {
+  if (link.type != 'url' || !ExternalLinks.isSafeWebLink(link.value)) {
+    return null;
+  }
+  return Uri.parse(link.value!.trim());
+}
+
 /// CTA pill text key: sale, new, or the default.
 enum BannerCta { sale, newArrivals, discover }
 
 BannerCta bannerCta(BannerLink link) => switch (link.type) {
-      'sale' => BannerCta.sale,
-      'new' => BannerCta.newArrivals,
-      _ => BannerCta.discover,
-    };
+  'sale' => BannerCta.sale,
+  'new' => BannerCta.newArrivals,
+  _ => BannerCta.discover,
+};

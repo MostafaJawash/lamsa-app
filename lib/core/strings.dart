@@ -32,10 +32,104 @@ abstract final class Strings {
   static const retry = 'إعادة المحاولة';
   static const emptyDefault = 'لا توجد عناصر لعرضها.';
   static const errorGeneric = 'حدث خطأ غير متوقع. حاول مرة أخرى.';
-  static const errorNetwork = 'تعذّر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.';
+  static const errorNetwork =
+      'تعذّر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.';
   static const errorTimeout = 'استغرق الاتصال وقتًا طويلًا. حاول مرة أخرى.';
 
   static const comingSoon = 'قريبًا';
+
+  // Auth: fields and actions.
+  static const authOr = 'أو';
+  static const authPending = 'لحظة…';
+  static const fieldName = 'الاسم';
+  static const fieldNameHint = 'مثلًا: ليلى أحمد';
+  static const fieldPhone = 'رقم الهاتف';
+  static const fieldPhoneHint = '933 123 456';
+  static const fieldCountryCode = 'رمز البلد';
+  static const fieldPassword = 'كلمة المرور';
+  static const fieldNewPassword = 'كلمة المرور الجديدة';
+  static const fieldConfirmPassword = 'تأكيد كلمة المرور الجديدة';
+  static const fieldCurrentPassword = 'كلمة المرور الحالية';
+  static const fieldTemporaryPassword = 'كلمة المرور المؤقتة';
+  static const showPassword = 'إظهار كلمة المرور';
+  static const hidePassword = 'إخفاء كلمة المرور';
+
+  // Auth: password rules (live hints).
+  static const rulesLabel = 'شروط كلمة المرور';
+  static const ruleLength = '8 أحرف على الأقل';
+  static const ruleNotDigits = 'ليست أرقامًا فقط';
+  static const ruleNotPhone = 'ليست رقم هاتفك';
+  static const ruleMet = 'متحقق';
+  static const ruleUnmet = 'غير متحقق';
+
+  // Auth: validation errors.
+  static const errNameRequired = 'اكتب اسمك.';
+  static const errNameTooLong = 'الاسم طويل جدًا.';
+  static const errPhoneRequired = 'أدخل رقم هاتفك.';
+  static const errPhoneInvalid = 'رقم الهاتف غير صحيح.';
+  static const errPasswordRequired = 'أدخل كلمة المرور.';
+  static const errPasswordShort =
+      'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.';
+  static const errPasswordLong = 'يجب ألا تتجاوز كلمة المرور 128 حرفًا.';
+  static const errPasswordDigits = 'يجب ألا تتكون كلمة المرور من أرقام فقط.';
+  static const errPasswordPhone = 'يجب ألا تكون كلمة المرور رقم هاتفك.';
+  static const errConfirmMismatch = 'كلمتا المرور غير متطابقتين.';
+  static const errSamePassword = 'يجب أن تختلف كلمة المرور الجديدة عن الحالية.';
+  static String authRetryIn(int seconds) =>
+      'يمكنك المحاولة مرة أخرى بعد $seconds ثانية.';
+  static const authContactStore = 'تواصل مع المتجر:';
+
+  // Auth: login / register / complete profile.
+  static const loginLead = 'أدخل رقم هاتفك وكلمة المرور.';
+  static const loginSubmit = 'دخول';
+  static const loginNoAccount = 'ليس لديك حساب؟';
+  static const loginRegister = 'سجّل';
+  static const loginForgot = 'نسيت كلمة المرور؟';
+  static const loginContinueAsGuest = 'تصفّح كضيف';
+  static const sessionExpired = 'انتهت الجلسة، سجّل الدخول من جديد.';
+  static const registerLead = 'سجّل باسمك ورقم هاتفك لتتمكن من الطلب بسهولة.';
+  static const registerSubmit = 'إنشاء حساب';
+  static const registerHaveAccount = 'لديك حساب؟';
+  static const registerLogin = 'سجّل دخولك';
+  static const loginInstead = 'سجّل دخولك';
+  static const completeLead =
+      'خطوة أخيرة: أدخل اسمك ورقم هاتفك لنتواصل معك بشأن طلباتك.';
+  static const completeGoogleAccount = 'حساب Google:';
+  static const completeSubmit = 'متابعة';
+  static const completeExpired = 'انتهت مهلة التسجيل بـ Google. ابدأ من جديد.';
+  static const completeRestart = 'العودة إلى تسجيل الدخول';
+
+  // Auth: Google. The "dev" button is development scaffolding only.
+  static const googleContinue = 'المتابعة مع Google';
+  static const googleDev = 'دخول تجريبي بـ Google';
+  static const googleDevName = 'مستخدم تجريبي';
+  static const googleFailed = 'تعذّرت المتابعة مع Google. حاول مرة أخرى.';
+
+  // Auth: forgot password (no self-service reset).
+  static const forgotTitle = 'نسيت كلمة المرور؟';
+  static const forgotBody =
+      'لا تتوفر استعادة تلقائية لكلمة المرور. اتصل بالمتجر لتحصل على كلمة مرور مؤقتة بعد التحقق من هويتك، ثم اختر كلمة مرور جديدة عند تسجيل الدخول.';
+  static const forgotCall = 'اتصل بالمتجر';
+  static const forgotWhatsapp = 'راسلنا على واتساب';
+  static const forgotNoContact =
+      'تواصل مع المتجر وأخبرهم أنك نسيت كلمة المرور.';
+  static const close = 'إغلاق';
+
+  // Auth: forced / voluntary password change.
+  static const changeLead = 'اختر كلمة مرور جديدة لحسابك.';
+  static const changeForcedNote =
+      'منحك المتجر كلمة مرور مؤقتة. يجب اختيار كلمة مرور جديدة قبل المتابعة.';
+  static const changeSubmit = 'حفظ كلمة المرور';
+
+  // Account tab.
+  static const gateTitle = 'سجّل الدخول لمتابعة التسوق';
+  static const gateText = 'سجّل دخولك أو أنشئ حسابًا للوصول إلى هذه الصفحة.';
+  static const accountVia = 'سجّلت الدخول عبر';
+  static const accountViaPhone = 'رقم الهاتف';
+  static const accountViaGoogle = 'Google';
+  static const accountEmail = 'البريد الإلكتروني';
+  static const accountUnavailable =
+      'تعذّر تحميل معلومات حسابك حاليًا. يُرجى المحاولة لاحقًا.';
 
   // Catalog: navigation and titles.
   static const categories = 'الأقسام';
@@ -142,24 +236,24 @@ abstract final class Strings {
 
   // Plurals (ported from lamsa-web `plurals.*`).
   static String products(int n) => _plural(
-        n,
-        zero: 'لا توجد منتجات',
-        one: 'منتج واحد',
-        two: 'منتجان',
-        few: '$n منتجات',
-        many: '$n منتجًا',
-        other: '$n منتج',
-      );
+    n,
+    zero: 'لا توجد منتجات',
+    one: 'منتج واحد',
+    two: 'منتجان',
+    few: '$n منتجات',
+    many: '$n منتجًا',
+    other: '$n منتج',
+  );
 
   static String brandsCount(int n) => _plural(
-        n,
-        zero: 'لا توجد ماركات',
-        one: 'ماركة واحدة',
-        two: 'ماركتان',
-        few: '$n ماركات',
-        many: '$n ماركة',
-        other: '$n ماركة',
-      );
+    n,
+    zero: 'لا توجد ماركات',
+    one: 'ماركة واحدة',
+    two: 'ماركتان',
+    few: '$n ماركات',
+    many: '$n ماركة',
+    other: '$n ماركة',
+  );
 
   /// Arabic CLDR plural categories (zero / one / two / few / many / other).
   static String _plural(

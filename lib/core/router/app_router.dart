@@ -6,8 +6,11 @@ import 'package:lamsa_app/core/router/auth_guard.dart';
 import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
+import 'package:lamsa_app/features/account/presentation/account_screen.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
+import 'package:lamsa_app/features/auth/data/models/google_auth_result.dart';
 import 'package:lamsa_app/features/auth/presentation/auth_screens.dart';
+import 'package:lamsa_app/features/auth/presentation/session_gate.dart';
 import 'package:lamsa_app/features/catalog/data/list_filters.dart';
 import 'package:lamsa_app/features/catalog/presentation/categories_screen.dart';
 import 'package:lamsa_app/features/catalog/presentation/home_screen.dart';
@@ -44,7 +47,8 @@ GoRouter buildRouter(SessionCubit session) {
     routes: [
       GoRoute(
         path: Routes.splash,
-        builder: (_, _) => const Scaffold(body: LoadingView(message: Strings.loading)),
+        builder: (_, _) =>
+            const Scaffold(body: LoadingView(message: Strings.loading)),
       ),
       // Bottom-nav shell: one branch (own stack) per tab.
       StatefulShellRoute.indexedStack(
@@ -63,13 +67,17 @@ GoRouter buildRouter(SessionCubit session) {
               ),
             ],
           ),
-          // TODO(catalog phase 1): placeholders until favorites, cart and
-          // account are built (see Routes.protectedPrefixes).
+          // Favorites and cart: gated inline for guests; the real screens
+          // arrive in a later phase (until then a "coming soon" body).
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: Routes.favorites,
-                builder: (_, _) => const ComingSoonTab(title: Strings.favorites),
+                builder: (_, _) => const SessionGate(
+                  title: Strings.favorites,
+                  returnPath: Routes.favorites,
+                  child: ComingSoonTab(title: Strings.favorites),
+                ),
               ),
             ],
           ),
@@ -77,7 +85,11 @@ GoRouter buildRouter(SessionCubit session) {
             routes: [
               GoRoute(
                 path: Routes.cart,
-                builder: (_, _) => const ComingSoonTab(title: Strings.cart),
+                builder: (_, _) => const SessionGate(
+                  title: Strings.cart,
+                  returnPath: Routes.cart,
+                  child: ComingSoonTab(title: Strings.cart),
+                ),
               ),
             ],
           ),
@@ -85,7 +97,7 @@ GoRouter buildRouter(SessionCubit session) {
             routes: [
               GoRoute(
                 path: Routes.account,
-                builder: (_, _) => const ComingSoonTab(title: Strings.account),
+                builder: (_, _) => const AccountScreen(),
               ),
             ],
           ),
@@ -123,15 +135,33 @@ GoRouter buildRouter(SessionCubit session) {
         path: Routes.sale,
         builder: (_, _) => const ProductListScreen(scope: SaleScope()),
       ),
-      GoRoute(path: Routes.login, builder: (_, _) => const LoginScreen()),
-      GoRoute(path: Routes.register, builder: (_, _) => const RegisterScreen()),
+      GoRoute(
+        path: Routes.login,
+        builder: (_, state) => LoginScreen(
+          from: state.uri.queryParameters['from'],
+          expired: state.uri.queryParameters['expired'] == '1',
+        ),
+      ),
+      GoRoute(
+        path: Routes.register,
+        builder: (_, state) =>
+            RegisterScreen(from: state.uri.queryParameters['from']),
+      ),
       GoRoute(
         path: Routes.completeProfile,
-        builder: (_, _) => const CompleteProfileScreen(),
+        // The signup token travels in the route; without it (e.g. the app was
+        // restarted) there is nothing to complete: start again at login.
+        redirect: (_, state) =>
+            state.extra is GoogleNeedsProfile ? null : Routes.login,
+        builder: (_, state) => CompleteProfileScreen(
+          profile: state.extra! as GoogleNeedsProfile,
+          from: state.uri.queryParameters['from'],
+        ),
       ),
       GoRoute(
         path: Routes.changePassword,
-        builder: (_, _) => const ChangePasswordScreen(),
+        builder: (_, state) =>
+            ChangePasswordScreen(from: state.uri.queryParameters['from']),
       ),
       GoRoute(path: Routes.orders, builder: (_, _) => const OrdersScreen()),
       GoRoute(

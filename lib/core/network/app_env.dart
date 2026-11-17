@@ -7,16 +7,26 @@ abstract final class AppEnv {
 
   /// Web OAuth client ID, passed as `serverClientId` so the ID token is
   /// accepted by the backend's `GOOGLE_CLIENT_IDS`. Empty until created.
-  static const googleServerClientId =
-      String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+  static const googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+  );
+
+  /// Store contact shown in "forgot password" (no self-service reset).
+  /// Empty hides the matching button.
+  static const supportPhone = String.fromEnvironment('SUPPORT_PHONE');
+  static const supportWhatsapp = String.fromEnvironment('SUPPORT_WHATSAPP');
 
   static const apiPrefix = '/api/v1';
 
   /// Default per dev scenario: the Android emulator reaches the host
   /// machine at 10.0.2.2, everything else at 127.0.0.1.
   static String get origin {
-    if (_apiBaseUrl.isNotEmpty) return _apiBaseUrl.replaceAll(RegExp(r'/+$'), '');
-    return Platform.isAndroid ? 'http://10.0.2.2:8000' : 'http://127.0.0.1:8000';
+    if (_apiBaseUrl.isNotEmpty) {
+      return _apiBaseUrl.replaceAll(RegExp(r'/+$'), '');
+    }
+    return Platform.isAndroid
+        ? 'http://10.0.2.2:8000'
+        : 'http://127.0.0.1:8000';
   }
 
   static String get apiBaseUrl => '$origin$apiPrefix';

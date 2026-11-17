@@ -2,7 +2,7 @@
 
 Customer mobile app for the Lamsa beauty store (Flutter, Android and iOS). Arabic only, RTL, light/dark following the system. Customer-facing only: nothing admin.
 
-Status: project structure and plumbing, plus **phase 1: catalog browsing** (home, categories, brands, new, sale, search, product detail) reading real data from the backend, all public/guest. Cart, favorites, account, auth screens, orders and notifications are still placeholders.
+Status: project structure and plumbing, plus **phase 1: catalog browsing** (home, categories, brands, new, sale, search, product detail) reading real data from the backend, all public/guest. **Phase 2: authentication** (phone + password, Google, session, forced password change, account tab). Cart, favorites, orders and notifications are still placeholders.
 
 ## Stack
 
@@ -14,7 +14,8 @@ Status: project structure and plumbing, plus **phase 1: catalog browsing** (home
 | Session | `flutter_secure_storage` plus a refresh-rotation interceptor |
 | Images | `cached_network_image` plus a size picker for the backend's WebP sizes |
 | Push | `firebase_core`, `firebase_messaging` (Firebase project `lamsa-c3e53`) |
-| Google sign-in | `google_sign_in` 7.x, drop-in once OAuth clients exist |
+| Google sign-in | `google_sign_in` 7.x, drop-in once OAuth clients exist (dev-mode fake until then) |
+| Links | `url_launcher` (https banner links, support phone/WhatsApp) |
 | Formatting | `intl`, number formatting only |
 | Fonts | IBM Plex Sans Arabic and Reem Kufi, bundled (same as the website) |
 | Tests | `flutter_test`, `mocktail`, `bloc_test` |
@@ -45,7 +46,7 @@ lib/
     strings.dart         central Arabic text
     widgets/             buttons, input, loading/empty/error views, placeholder screen
   features/
-    auth/                session cubit, auth API, Google service, empty form cubits, placeholder screens
+    auth/                session cubit, auth API, validation, error mapping, Google services, form cubits, screens, SessionGate
     shell/               bottom-nav frame (MainShell) and the "coming soon" tab body
     catalog/             data/ (models, API, repository cache, filters, variant rules), cubit/, presentation/
     cart/ favorites/ orders/ account/   placeholder screens (cart/favorites/account show "coming soon" in the shell)
@@ -76,10 +77,29 @@ Ports lamsa-web's catalog rules to native widgets; same backend, same business d
 
 **Temporary / deferred.**
 - Heart and add-to-cart are visible and show a "قريبًا" snackbar (add-to-cart is genuinely disabled for sold-out products).
-- Favorites, Cart and Account tabs show "قريبًا" inside the shell, and `Routes.protectedPrefixes` temporarily excludes them from the auth guard so guests are not bounced to login. Both are marked `TODO(catalog phase 1)`; restore the guard when those features are built.
-- Banner links of type `url` are not tappable (needs `url_launcher`); in-app link types work.
+- Favorites and Cart show "قريبًا" once signed in (guests see the login prompt).
 - The web's shipping/pickup/cash "perks" block is checkout-related and left out.
 - No search history, live (as-you-type) search, or full-screen image zoom.
+
+## Authentication (phase 2)
+
+Mirrors lamsa-web's real auth rules with native screens.
+
+**Screens.** Login, register, complete-profile (Google), forced/voluntary change-password, and a real Account tab (name, phone, email, how you signed in, logout). The phone field is a country-code select (+963 default) plus the number; it is combined exactly like the web (`combinePhone`: Syrian trunk zero dropped, international `+`/`00` numbers sent as typed) and the backend normalizes to E.164. Arabic-Indic digits are read as Latin digits (small addition over the web). New passwords show the backend rules as live hints: 8-128 characters, not digits only, not your phone.
+
+**Errors.** `mapAuthError` (port of the web's) puts phone errors under the phone, password errors under the password, `VALIDATION_ERROR` details on their fields, shows a countdown that disables submit for `TOO_MANY_ATTEMPTS` (`Retry-After`), links to login for `ALREADY_REGISTERED`, offers the store phone for `ACCOUNT_DISABLED`, and tells the user to start Google again when the 10-minute signup token expires. `SERVICE_BUSY` is retried once. The backend's Arabic message always wins; the local map is the fallback.
+
+**Session.** `SessionCubit` restores the stored session at launch (auto-login straight to the shell). `SessionState.end` records why a session is not active: a **first launch / guest** browses home; a **dead stored session** (refresh rejected, `TOKEN_REUSED`, `TOKEN_INVALID`) lands on login with an "انتهت الجلسة" notice; a **deliberate logout** lands on login without one. Logout unregisters push, calls `/auth/logout`, clears secure storage, signs out of Google and clears the catalog cache.
+
+**Forced password change.** A login with a temporary password (`must_change_password`) or any `403 PASSWORD_CHANGE_REQUIRED` (reported by `AuthInterceptor` to the session, which re-reads `/users/me`) sends the user to the change-password screen, and the router guard redirects every other route there until the password is changed. The screen has no back button and has its own logout link.
+
+**Gating the tabs.** Favorites, Cart and Account are gated inline by `SessionGate`: a guest sees "سجّل الدخول لمتابعة التسوق" with login/register buttons inside the tab (the bottom bar stays) and the tab swaps to the real content after login. `/orders` and `/notifications` still redirect to `/login?from=...`. Return paths are sanitized (`safeReturnPath`, like the web's `safeNext`).
+
+**Google sign-in today (dev only).** There are no OAuth client IDs yet. With `GOOGLE_SERVER_CLIENT_ID` empty, non-release builds use `DevGoogleAuthService`, which sends the backend's dev token `dev-google|<sub>|dev-<sub>@example.test|مستخدم تجريبي` (the backend must run with `GOOGLE_DEV_MODE=true`, development only). The random `sub` is created once and kept in secure storage, so every tap is the same fake user, as in the web. The button is labelled "دخول تجريبي بـ Google". A **release build without a client ID shows no Google button at all**. Once real IDs exist, set `GOOGLE_SERVER_CLIENT_ID` (see the manual steps below) and the app switches to the real `google_sign_in` flow automatically; the dev service is never selected then. New Google users go through complete-profile (name prefilled + phone).
+
+**Guest-data merge.** `GuestDataMerger` runs after every sign-in (skipped while a password change is pending, then run after it). It is a no-op until the cart/favorites phase adds device-held guest data and the real `/favorites/merge` + `/cart/merge` calls.
+
+**Other.** `SUPPORT_PHONE` / `SUPPORT_WHATSAPP` (optional defines) add call/WhatsApp buttons to the "forgot password" dialog and the disabled-account message; empty hides them. Banner links of type `url` now open in the browser (https only).
 
 ## Auth and token storage (differs from the other two clients)
 
@@ -113,7 +133,8 @@ Compile-time via `--dart-define-from-file` (no runtime dotenv package, no secret
 | Variable | Meaning |
 |---|---|
 | `API_BASE_URL` | backend origin, e.g. `http://127.0.0.1:8000` |
-| `GOOGLE_SERVER_CLIENT_ID` | web OAuth client ID used as `serverClientId` (empty disables Google sign-in) |
+| `GOOGLE_SERVER_CLIENT_ID` | web OAuth client ID used as `serverClientId`. Empty: dev-mode fake Google in non-release builds, no Google in release |
+| `SUPPORT_PHONE`, `SUPPORT_WHATSAPP` | optional store contact for "forgot password" (empty hides the buttons) |
 
 Firebase settings come from `google-services.json` / `GoogleService-Info.plist`, not from env.
 

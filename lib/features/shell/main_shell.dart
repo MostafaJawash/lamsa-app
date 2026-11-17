@@ -55,11 +55,10 @@ class MainShell extends StatelessWidget {
   }
 }
 
-/// Body of the not-yet-built tabs (favorites, cart, account).
+/// Body of the not-yet-built tabs (favorites, cart), shown once signed in.
+/// Guests see the inline login prompt of `SessionGate` instead.
 ///
-/// TODO(catalog phase 1): temporary. Replace with the real screens when
-/// those features are built, together with restoring the auth guard for
-/// `/cart`, `/favorites` and `/account` (see `Routes.protectedPrefixes`).
+/// TODO(cart/favorites phases): replace with the real screens.
 class ComingSoonTab extends StatelessWidget {
   const ComingSoonTab({required this.title, super.key});
 
@@ -74,9 +73,7 @@ class ComingSoonTab extends StatelessWidget {
           padding: const EdgeInsets.all(Spacing.xl),
           child: Text(
             Strings.comingSoon,
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall!
+            style: Theme.of(context).textTheme.headlineSmall!
                 .copyWith(color: context.lamsa.muted),
           ),
         ),

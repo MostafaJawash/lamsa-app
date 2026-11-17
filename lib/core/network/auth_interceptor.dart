@@ -22,6 +22,7 @@ final class AuthInterceptor extends Interceptor {
     required this.storage,
     required this.refresh,
     required this.onSessionExpired,
+    this.onPasswordChangeRequired,
     this.refreshMargin = const Duration(seconds: 60),
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
@@ -30,6 +31,10 @@ final class AuthInterceptor extends Interceptor {
   final TokenStorage storage;
   final TokenRefresher refresh;
   final Future<void> Function() onSessionExpired;
+
+  /// Called when any request is refused with `403 PASSWORD_CHANGE_REQUIRED`
+  /// (a temporary password must be replaced before anything else works).
+  final Future<void> Function()? onPasswordChangeRequired;
   final Duration refreshMargin;
   final DateTime Function() _now;
 
@@ -69,6 +74,13 @@ final class AuthInterceptor extends Interceptor {
   ) async {
     final response = err.response;
     final options = err.requestOptions;
+    if (response?.statusCode == 403 &&
+        options.extra[AuthExtra.noAuth] != true &&
+        ApiError.fromResponse(response!).code == 'PASSWORD_CHANGE_REQUIRED') {
+      await onPasswordChangeRequired?.call();
+      handler.next(err);
+      return;
+    }
     if (response?.statusCode != 401 ||
         options.extra[AuthExtra.noAuth] == true ||
         options.extra[AuthExtra.retried] == true) {
@@ -80,7 +92,9 @@ final class AuthInterceptor extends Interceptor {
     final code = ApiError.fromResponse(response!).code;
 
     if (code == 'TOKEN_EXPIRED') {
-      final sent = sentHeader is String ? sentHeader.replaceFirst('Bearer ', '') : null;
+      final sent = sentHeader is String
+          ? sentHeader.replaceFirst('Bearer ', '')
+          : null;
       final stored = await storage.read();
       if (stored == null) {
         handler.next(err);
@@ -88,8 +102,7 @@ final class AuthInterceptor extends Interceptor {
       }
       try {
         // Another request may already have rotated the token meanwhile.
-        final fresh =
-            stored.accessToken != sent ? stored : await _refresh();
+        final fresh = stored.accessToken != sent ? stored : await _refresh();
         if (fresh == null) {
           handler.next(err);
           return;
@@ -127,7 +140,8 @@ final class AuthInterceptor extends Interceptor {
       return fresh;
     } on DioException catch (e) {
       final status = e.response?.statusCode;
-      final unrecoverable = status != null &&
+      final unrecoverable =
+          status != null &&
           status >= 400 &&
           status < 500 &&
           status != 408 &&
