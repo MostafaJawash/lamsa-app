@@ -2,7 +2,7 @@
 
 Customer mobile app for the Lamsa beauty store (Flutter, Android and iOS). Arabic only, RTL, light/dark following the system. Customer-facing only: nothing admin.
 
-Status: project structure and plumbing. Every screen is a placeholder showing its Arabic title; the home screen also pings the backend to prove networking works.
+Status: project structure and plumbing, plus **phase 1: catalog browsing** (home, categories, brands, new, sale, search, product detail) reading real data from the backend, all public/guest. Cart, favorites, account, auth screens, orders and notifications are still placeholders.
 
 ## Stack
 
@@ -46,15 +46,40 @@ lib/
     widgets/             buttons, input, loading/empty/error views, placeholder screen
   features/
     auth/                session cubit, auth API, Google service, empty form cubits, placeholder screens
-    catalog/             home (backend ping), category, product, search, brands placeholders
-    cart/ favorites/ orders/ account/   placeholder screens
+    shell/               bottom-nav frame (MainShell) and the "coming soon" tab body
+    catalog/             data/ (models, API, repository cache, filters, variant rules), cubit/, presentation/
+    cart/ favorites/ orders/ account/   placeholder screens (cart/favorites/account show "coming soon" in the shell)
     notifications/       device registration API, push service, push deep-link parsing, placeholder
-    banners/             empty cubit scaffold
 test/                    widget test (boots to RTL home, guard redirect) plus unit tests
 tool/                    check_openapi.dart and its snapshot
 env/                     dev.example.json (committed); real env/*.json files are git-ignored
 assets/fonts/            bundled OFL fonts with licenses
 ```
+
+## Catalog (phase 1)
+
+Ports lamsa-web's catalog rules to native widgets; same backend, same business decisions.
+
+**Navigation.** Bottom bar with 5 tabs (`StatefulShellRoute`, each tab keeps its own stack and scroll): الرئيسية، الأقسام، المفضلة، السلة، حسابي. Search is the pill in the app bar of Home and Categories. جديد / التخفيضات / الماركات are reached from the chip row (Home and Categories), rails' "عرض الكل" and banners. Category, brand, product, search, new, sale and brands screens are full-screen routes pushed above the tabs.
+
+**Screens.** Home (banners carousel, new rail, category tiles, sale rail, brands; pull-to-refresh; each section loads and fails on its own with lamsa-web's fallbacks: built-in sale/new banners, rail empty messages, categories/brands hidden when empty). Categories tab. Category / brand / new / sale are one `ProductListScreen` with a scope. Search sends the raw query on submit (the backend normalizes Arabic). Product detail: swipeable gallery, brand link, price/sale/savings, color swatches and size chips with live price/stock/images (pure port of lamsa-web's `variants.ts` in `catalog/data/variants.dart`), stock line (exact stock only for the backend's `low` status), description/details, bundle contents, related rail.
+
+**Filters.** Bottom sheets: sort, and a filter sheet built from `/products/facets` (brand, price with SYP/USD choice, attributes, color/size options, "عليه خصم"). No "in stock" filter: the backend hides out-of-stock products (`catalog_hide_out_of_stock`). Active filters show as removable chips; the category's first select attribute and child categories are chips above the grid. A param the backend rejects (`INVALID_FILTER`) is dropped and retried, with a notice.
+
+**Pagination.** Infinite scroll, 24 per page (`page`/`page_size`), spinner footer and a retry row if a page fails. Pull-to-refresh restarts from page 1. Superseded responses are ignored so fast filter changes cannot show stale results.
+
+**Caching.** `CatalogRepository` is an in-memory read-through cache for the app session: products/facets 45 s, product detail 120 s, categories/brands 300 s (the backend's own cache lifetimes), identical in-flight requests are shared, failures are never cached, pull-to-refresh and retry bypass it. Cubits are per screen. No disk persistence and no ETag revalidation yet. Requests are sent without a token (guest), so `is_favorite` is always false for now.
+
+**Images.** `LamsaImage` + `ImageUrls.pick` choose thumb/medium/large by on-screen size. A missing or broken image shows a drawn bottle silhouette (products) or a monogram on a deterministic brand color (brands), like the web.
+
+**Money.** Backend decimal strings are shown in their own currency (`formatAmount`); nothing is converted or summed across SYP/USD.
+
+**Temporary / deferred.**
+- Heart and add-to-cart are visible and show a "قريبًا" snackbar (add-to-cart is genuinely disabled for sold-out products).
+- Favorites, Cart and Account tabs show "قريبًا" inside the shell, and `Routes.protectedPrefixes` temporarily excludes them from the auth guard so guests are not bounced to login. Both are marked `TODO(catalog phase 1)`; restore the guard when those features are built.
+- Banner links of type `url` are not tappable (needs `url_launcher`); in-app link types work.
+- The web's shipping/pickup/cash "perks" block is checkout-related and left out.
+- No search history, live (as-you-type) search, or full-screen image zoom.
 
 ## Auth and token storage (differs from the other two clients)
 

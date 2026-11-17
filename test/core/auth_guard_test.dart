@@ -20,15 +20,20 @@ void main() {
   final signedIn = SessionState(SessionStatus.authenticated, _user());
 
   test('unknown session parks on the splash route', () {
-    expect(redirect(const SessionState.unknown(), '/cart'), '/splash');
+    expect(redirect(const SessionState.unknown(), '/orders'), '/splash');
     expect(redirect(const SessionState.unknown(), '/splash'), isNull);
   });
 
   test('signed out: protected routes go to login with ?from', () {
-    expect(redirect(out, '/cart'), '/login?from=%2Fcart');
+    expect(redirect(out, '/orders'), '/login?from=%2Forders');
+    expect(redirect(out, '/notifications'), '/login?from=%2Fnotifications');
     expect(redirect(out, '/orders/5'), '/login?from=%2Forders%2F5');
     expect(redirect(out, '/'), isNull);
     expect(redirect(out, '/product/x'), isNull);
+    // Catalog phase 1: the placeholder tabs are open to guests for now.
+    for (final tab in ['/cart', '/favorites', '/account']) {
+      expect(redirect(out, tab), isNull);
+    }
     expect(redirect(out, '/splash'), '/');
   });
 
@@ -38,11 +43,11 @@ void main() {
       authRedirect(
         session: signedIn,
         location: '/login',
-        uri: Uri.parse('/login?from=/cart'),
+        uri: Uri.parse('/login?from=/orders'),
       ),
-      '/cart',
+      '/orders',
     );
-    expect(redirect(signedIn, '/cart'), isNull);
+    expect(redirect(signedIn, '/orders'), isNull);
   });
 
   test('must-change-password forces the change-password screen', () {

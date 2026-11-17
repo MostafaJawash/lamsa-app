@@ -46,3 +46,13 @@ String _withDecimals(int absMinor, {required bool trim}) {
 List<String> formatTotals(Iterable<Money> amounts, {bool isolate = true}) => [
       for (final m in sumByCurrency(amounts)) formatMoney(m, isolate: isolate),
     ];
+
+/// Formats a backend decimal string (e.g. `"150000.00"`) in its own currency.
+/// An unparsable amount is shown as received instead of breaking the screen.
+String formatAmount(String amount, String currency) {
+  try {
+    return formatMoney(Money.parse(amount, currency));
+  } on FormatException {
+    return '$amount $currency';
+  }
+}

@@ -11,6 +11,7 @@ import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
 import 'package:lamsa_app/features/auth/data/auth_api.dart';
 import 'package:lamsa_app/features/auth/data/google_auth_service.dart';
 import 'package:lamsa_app/features/catalog/data/catalog_api.dart';
+import 'package:lamsa_app/features/catalog/data/catalog_repository.dart';
 import 'package:lamsa_app/features/notifications/data/devices_api.dart';
 import 'package:lamsa_app/features/notifications/data/push_service.dart';
 
@@ -20,7 +21,7 @@ final class AppDependencies {
   AppDependencies({
     required this.session,
     required this.authApi,
-    required this.catalogApi,
+    required this.catalog,
     required this.devicesApi,
     required this.push,
     required this.google,
@@ -45,7 +46,7 @@ final class AppDependencies {
     return AppDependencies(
       session: session,
       authApi: authApi,
-      catalogApi: CatalogApi(dio),
+      catalog: CatalogRepository(CatalogApi(dio)),
       devicesApi: devicesApi,
       push: push,
       google: GoogleSignInAuthService(),
@@ -54,7 +55,7 @@ final class AppDependencies {
 
   final SessionCubit session;
   final AuthApi authApi;
-  final CatalogApi catalogApi;
+  final CatalogRepository catalog;
   final DevicesApi devicesApi;
   final PushService push;
   final GoogleAuthService google;
@@ -71,7 +72,7 @@ class LamsaApp extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider.value(value: deps.authApi),
-        RepositoryProvider.value(value: deps.catalogApi),
+        RepositoryProvider.value(value: deps.catalog),
         RepositoryProvider.value(value: deps.devicesApi),
         RepositoryProvider.value(value: deps.push),
         RepositoryProvider.value(value: deps.google),

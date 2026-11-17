@@ -23,6 +23,9 @@ final class ImageUrls extends Equatable {
   final String? medium;
   final String? large;
 
+  Map<String, dynamic> toJson() =>
+      {'thumb': thumb, 'medium': medium, 'large': large};
+
   bool get isEmpty => thumb == null && medium == null && large == null;
 
   /// Size class for [physicalWidth] pixels, same thresholds as lamsa-web.

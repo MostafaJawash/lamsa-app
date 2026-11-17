@@ -11,6 +11,7 @@ class LamsaImage extends StatelessWidget {
     required this.width,
     this.height,
     this.fit = BoxFit.cover,
+    this.fallback,
     super.key,
   });
 
@@ -19,13 +20,18 @@ class LamsaImage extends StatelessWidget {
   final double? height;
   final BoxFit fit;
 
+  /// Shown when there is no URL or the image fails (e.g. a product
+  /// silhouette); defaults to a plain tinted box.
+  final Widget? fallback;
+
   @override
   Widget build(BuildContext context) {
     final dpr = MediaQuery.devicePixelRatioOf(context);
     final url = urls?.pick(width, devicePixelRatio: dpr);
     final placeholder = ColoredBox(color: context.lamsa.surface2);
+    final missing = fallback ?? placeholder;
     if (url == null) {
-      return SizedBox(width: width, height: height, child: placeholder);
+      return SizedBox(width: width, height: height, child: missing);
     }
     return CachedNetworkImage(
       imageUrl: AppEnv.resolveMediaUrl(url),
@@ -33,7 +39,7 @@ class LamsaImage extends StatelessWidget {
       height: height,
       fit: fit,
       placeholder: (_, _) => placeholder,
-      errorWidget: (_, _, _) => placeholder,
+      errorWidget: (_, _, _) => missing,
     );
   }
 }

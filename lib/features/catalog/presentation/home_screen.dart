@@ -3,85 +3,240 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/core/strings.dart';
-import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
-import 'package:lamsa_app/core/widgets/lamsa_button.dart';
-import 'package:lamsa_app/core/widgets/placeholder_screen.dart';
 import 'package:lamsa_app/features/catalog/cubit/home_cubit.dart';
-import 'package:lamsa_app/features/catalog/data/catalog_api.dart';
+import 'package:lamsa_app/features/catalog/cubit/load_status.dart';
+import 'package:lamsa_app/features/catalog/data/catalog_repository.dart';
+import 'package:lamsa_app/features/catalog/data/models/catalog_models.dart';
+import 'package:lamsa_app/features/catalog/presentation/widgets/banners_carousel.dart';
+import 'package:lamsa_app/features/catalog/presentation/widgets/catalog_art.dart';
+import 'package:lamsa_app/features/catalog/presentation/widgets/catalog_bits.dart';
+import 'package:lamsa_app/features/catalog/presentation/widgets/sections.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  static const _links = <(String, String)>[
-    (Strings.category, '${Routes.category}/demo'),
-    (Strings.product, '${Routes.product}/demo'),
-    (Strings.search, Routes.search),
-    (Strings.brands, Routes.brands),
-    (Strings.cart, Routes.cart),
-    (Strings.favorites, Routes.favorites),
-    (Strings.orders, Routes.orders),
-    (Strings.account, Routes.account),
-    (Strings.notifications, Routes.notifications),
-    (Strings.login, Routes.login),
-    (Strings.register, Routes.register),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => HomeCubit(context.read<CatalogApi>())..check(),
-      child: PlaceholderScreen(
-        title: Strings.home,
-        children: [
-          const SizedBox(height: Spacing.lg),
-          const _ServerStatusBanner(),
-          const SizedBox(height: Spacing.lg),
-          for (final (label, route) in _links)
-            Padding(
-              padding: const EdgeInsets.only(bottom: Spacing.sm),
-              child: LamsaButton(
-                label: label,
-                secondary: true,
-                onPressed: () => context.push(route),
+      create: (context) =>
+          HomeCubit(context.read<CatalogRepository>())..load(),
+      child: const HomeView(),
+    );
+  }
+}
+
+/// Home: banners, new rail, category tiles, sale rail, brands. Same sections
+/// and order as lamsa-web. Each section degrades on its own.
+class HomeView extends StatelessWidget {
+  const HomeView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        titleSpacing: Spacing.pageGutter,
+        title: const SearchPill(),
+      ),
+      body: RefreshIndicator(
+        onRefresh: () => context.read<HomeCubit>().load(refresh: true),
+        child: BlocBuilder<HomeCubit, HomeState>(
+          builder: (context, state) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(
+                top: Spacing.md,
+                bottom: Spacing.xxl,
               ),
-            ),
-        ],
+              children: [
+                const QuickLinks(),
+                const SizedBox(height: Spacing.md),
+                _Banners(state.banners),
+                _NewRail(state.newArrivals),
+                _Categories(state.categories),
+                _SaleRail(state.onSale),
+                _BrandsRow(state.brands),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-class _ServerStatusBanner extends StatelessWidget {
-  const _ServerStatusBanner();
+class _Banners extends StatelessWidget {
+  const _Banners(this.section);
+
+  final Section<List<HomeBanner>> section;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.lamsa;
-    return BlocBuilder<HomeCubit, HomeState>(
-      builder: (context, state) {
-        final (text, color) = switch (state.status) {
-          ServerStatus.checking => (Strings.checkingServer, c.muted),
-          ServerStatus.reachable => (Strings.serverReachable, c.ok),
-          ServerStatus.unreachable => (Strings.serverUnreachable, c.danger),
-        };
-        return Container(
-          padding: const EdgeInsets.all(Spacing.md),
-          decoration: BoxDecoration(
-            color: c.surface,
-            border: Border.all(color: color),
-            borderRadius: BorderRadius.circular(Radii.lg),
-          ),
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .titleSmall
-                ?.copyWith(color: color),
-          ),
-        );
-      },
+    if (section.isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: Spacing.pageGutter),
+        child: SkeletonBox(height: BannersCarousel.height, radius: Radii.xl),
+      );
+    }
+    // Failed or empty: the two built-in banners, like lamsa-web.
+    return BannersCarousel(banners: section.data);
+  }
+}
+
+class _Rail extends StatelessWidget {
+  const _Rail({
+    required this.section,
+    required this.title,
+    required this.emptyMessage,
+    required this.seeAllRoute,
+  });
+
+  final Section<List<ProductCard>> section;
+  final String title;
+  final String emptyMessage;
+  final String seeAllRoute;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = section.data ?? const <ProductCard>[];
+    final hasItems = section.status == LoadStatus.loaded && items.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+          title: title,
+          moreLabel: Strings.seeAll,
+          onMore: hasItems ? () => context.push(seeAllRoute) : null,
+        ),
+        if (section.isLoading)
+          const RailSkeleton()
+        else if (hasItems)
+          ProductRail(products: items)
+        else
+          SectionMessage(emptyMessage),
+      ],
+    );
+  }
+}
+
+class _NewRail extends StatelessWidget {
+  const _NewRail(this.section);
+
+  final Section<List<ProductCard>> section;
+
+  @override
+  Widget build(BuildContext context) => _Rail(
+        section: section,
+        title: Strings.homeNewArrivals,
+        emptyMessage: Strings.homeEmptyNew,
+        seeAllRoute: Routes.newArrivals,
+      );
+}
+
+class _SaleRail extends StatelessWidget {
+  const _SaleRail(this.section);
+
+  final Section<List<ProductCard>> section;
+
+  @override
+  Widget build(BuildContext context) => _Rail(
+        section: section,
+        title: Strings.homeOnSale,
+        emptyMessage: Strings.homeEmptySale,
+        seeAllRoute: Routes.sale,
+      );
+}
+
+class _Categories extends StatelessWidget {
+  const _Categories(this.section);
+
+  final Section<List<CategoryTile>> section;
+
+  @override
+  Widget build(BuildContext context) {
+    final tiles = section.data ?? const <CategoryTile>[];
+    // Hidden when empty or failed, like lamsa-web.
+    if (!section.isLoading && tiles.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(title: Strings.homeByCategory),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.pageGutter),
+          child: section.isLoading
+              ? const SkeletonBox(height: 160)
+              : GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: Spacing.md,
+                  crossAxisSpacing: Spacing.md,
+                  childAspectRatio: .95,
+                  children: [for (final t in tiles) CategoryTileView(tile: t)],
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BrandsRow extends StatelessWidget {
+  const _BrandsRow(this.section);
+
+  final Section<List<Brand>> section;
+
+  @override
+  Widget build(BuildContext context) {
+    final brands = section.data ?? const <Brand>[];
+    if (!section.isLoading && brands.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+          title: Strings.homeBrands,
+          moreLabel: Strings.allBrands,
+          onMore: () => context.push(Routes.brands),
+        ),
+        SizedBox(
+          height: 96,
+          child: section.isLoading
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: Spacing.pageGutter),
+                  child: SkeletonBox(),
+                )
+              : ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.pageGutter,
+                  ),
+                  itemCount: brands.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: Spacing.lg),
+                  itemBuilder: (context, i) {
+                    final b = brands[i];
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(Radii.lg),
+                      onTap: () => context.push(Routes.brandPath(b.slug)),
+                      child: SizedBox(
+                        width: 72,
+                        child: Column(
+                          children: [
+                            BrandLogo(id: b.id, name: b.name, logo: b.logo),
+                            const SizedBox(height: Spacing.xs),
+                            Text(
+                              b.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelMedium,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }
