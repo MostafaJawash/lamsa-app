@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notification channels (ids are fixed by the backend: orders, marketing). -->
+    <string name="channel_orders_name">تحديثات الطلبات</string>
+    <string name="channel_orders_description">حالة طلباتك: التأكيد والتجهيز والشحن والتسليم.</string>
+    <string name="channel_marketing_name">العروض والتنبيهات</string>
+    <string name="channel_marketing_description">العروض، وتنبيهات المفضلة، وتذكير السلة.</string>
+</resources>

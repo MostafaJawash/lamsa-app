@@ -47,3 +47,10 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+// Firebase: the plugin needs google-services.json (a manual step, see the
+// README), so it is applied only once the file is there. Without it the app
+// builds and runs with push switched off.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}

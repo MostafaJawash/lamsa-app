@@ -15,13 +15,18 @@ import 'package:lamsa_app/features/cart/data/guest_store.dart';
 import 'package:lamsa_app/features/catalog/data/catalog_repository.dart';
 import 'package:lamsa_app/features/favorites/cubit/favorites_cubit.dart';
 import 'package:lamsa_app/features/favorites/presentation/favorites_screen.dart';
+import 'package:lamsa_app/features/notifications/cubit/unread_cubit.dart';
 import 'package:lamsa_app/features/notifications/data/devices_api.dart';
+import 'package:lamsa_app/features/notifications/data/notifications_api.dart';
+import 'package:lamsa_app/features/notifications/data/push_coordinator.dart';
 import 'package:lamsa_app/features/notifications/data/push_service.dart';
+import 'package:lamsa_app/features/notifications/data/push_store.dart';
 import 'package:lamsa_app/features/orders/data/orders_api.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../cart/cart_fakes.dart';
 import '../catalog/catalog_fakes.dart';
+import '../notifications/notification_fakes.dart';
 
 AuthUser testUser({
   bool mustChange = false,
@@ -220,10 +225,11 @@ SessionCubit makeSession({
   TokenStorage? storage,
   GuestDataMerger? merger,
   Future<void> Function()? onSignedOut,
+  PushService? push,
 }) => SessionCubit(
   api: api ?? FakeAuthApi(),
   storage: storage ?? MemoryTokenStorage(),
-  push: PushService(_MockDevicesApi()),
+  push: push ?? PushService(_MockDevicesApi(), store: MemoryPushStore()),
   merger: merger ?? const NoopGuestDataMerger(),
   onSignedOut: onSignedOut,
 );
@@ -242,6 +248,8 @@ AppDependencies makeDeps({
   OrdersApi? ordersApi,
   AddressesRepository? addresses,
   CartApi? cartApi,
+  PushService? push,
+  NotificationsApi? notificationsApi,
 }) {
   final store = MemoryGuestStore();
   final theCartApi = cartApi ?? FakeCartApi(FakeShop([]));
@@ -255,12 +263,16 @@ AppDependencies makeDeps({
         lookup: (ids) async => const [],
         detail: (slug) async => throw StateError('no detail'),
       );
-  return AppDependencies(
+  final theNotifications = notificationsApi ?? FakeNotificationsApi();
+  final unread = UnreadCubit(theNotifications, session);
+  final thePush = push ?? PushService(_MockDevicesApi(), store: MemoryPushStore());
+  late final AppDependencies deps;
+  deps = AppDependencies(
     session: session,
     authApi: api,
     catalog: CatalogRepository(catalogApi ?? FakeCatalogApi()),
     devicesApi: _MockDevicesApi(),
-    push: PushService(_MockDevicesApi()),
+    push: thePush,
     google: google ?? FakeGoogle(),
     cart: theCart,
     favorites: theFavorites,
@@ -269,7 +281,17 @@ AppDependencies makeDeps({
     cartApi: theCartApi,
     ordersApi: ordersApi ?? _MockOrdersApi(),
     addresses: addresses ?? AddressesRepository(_MockAddressesApi()),
+    notificationsApi: theNotifications,
+    unread: unread,
+    coordinator: PushCoordinator(
+      push: thePush,
+      session: session,
+      api: theNotifications,
+      unread: unread,
+      navigate: (target) => navigateToTarget(deps.router, target),
+    ),
   );
+  return deps;
 }
 
 class _MockOrdersApi extends Mock implements OrdersApi {}

@@ -19,6 +19,7 @@ import 'package:lamsa_app/features/catalog/presentation/home_screen.dart';
 import 'package:lamsa_app/features/catalog/presentation/product_list_screen.dart';
 import 'package:lamsa_app/features/catalog/presentation/product_screen.dart';
 import 'package:lamsa_app/features/favorites/presentation/favorites_screen.dart';
+import 'package:lamsa_app/features/notifications/presentation/notification_settings_screen.dart';
 import 'package:lamsa_app/features/notifications/presentation/notifications_screen.dart';
 import 'package:lamsa_app/features/orders/data/models/order_models.dart';
 import 'package:lamsa_app/features/orders/presentation/checkout_screens.dart';
@@ -201,6 +202,10 @@ GoRouter buildRouter(SessionCubit session) {
       GoRoute(
         path: Routes.notifications,
         builder: (_, _) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: Routes.notificationSettings,
+        builder: (_, _) => const NotificationSettingsScreen(),
       ),
     ],
   );

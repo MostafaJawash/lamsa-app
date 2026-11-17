@@ -2,7 +2,7 @@
 
 Customer mobile app for the Lamsa beauty store (Flutter, Android and iOS). Arabic only, RTL, light/dark following the system. Customer-facing only: nothing admin.
 
-Status: project structure and plumbing, plus **phase 1: catalog browsing** (home, categories, brands, new, sale, search, product detail) reading real data from the backend, all public/guest. **Phase 2: authentication** (phone + password, Google, session, forced password change, account tab) and **phase 3: cart and favorites** for guests and signed-in users, with the guest-data merge on sign-in. **Phase 4: checkout, orders and account management** (addresses with an OpenStreetMap pin, real order placement, order history/detail with cancel and reorder, profile / phone / password / logout-everywhere). Only the notifications screen is still a placeholder.
+Status: project structure and plumbing, plus **phase 1: catalog browsing** (home, categories, brands, new, sale, search, product detail) reading real data from the backend, all public/guest. **Phase 2: authentication** (phone + password, Google, session, forced password change, account tab) and **phase 3: cart and favorites** for guests and signed-in users, with the guest-data merge on sign-in. **Phase 4: checkout, orders and account management** (addresses with an OpenStreetMap pin, real order placement, order history/detail with cancel and reorder, profile / phone / password / logout-everywhere). **Phase 5: push notifications** (device registration, foreground banner, tap-to-navigate, the notification inbox, preferences, unread badge). All of it is built and tested with mocked FCM; real push delivery has not been verified because the Firebase config files are still a manual step (see *Push notifications (phase 5)* below and its manual QA checklist).
 
 ## Stack
 
@@ -54,7 +54,7 @@ lib/
     favorites/           FavoritesCubit, favorites list cubit, heart button, favorites screen
     orders/              OrdersApi, idempotency (checkout_attempt), CheckoutCubit, orders/detail cubits, checkout/orders screens
     account/             addresses (API, repository, rules, cubits, screens, map picker), settings cubits/screens, account menu
-    notifications/       device registration API, push service, push deep-link parsing, placeholder
+    notifications/       push (service, FCM wrapper, store, coordinator, link/route mapping), inbox + preferences API, cubits, screens
 test/                    widget test (boots to RTL home, guard redirect) plus unit tests
 tool/                    check_openapi.dart and its snapshot
 env/                     dev.example.json (committed); real env/*.json files are git-ignored
@@ -95,7 +95,7 @@ Mirrors lamsa-web's real auth rules with native screens.
 
 **Forced password change.** A login with a temporary password (`must_change_password`) or any `403 PASSWORD_CHANGE_REQUIRED` (reported by `AuthInterceptor` to the session, which re-reads `/users/me`) sends the user to the change-password screen, and the router guard redirects every other route there until the password is changed. The screen has no back button and has its own logout link.
 
-**Gating the tabs.** Favorites, Cart and Account are gated inline by `SessionGate`: a guest sees "سجّل الدخول لمتابعة التسوق" with login/register buttons inside the tab (the bottom bar stays) and the tab swaps to the real content after login. `/orders` and `/notifications` still redirect to `/login?from=...`. Return paths are sanitized (`safeReturnPath`, like the web's `safeNext`).
+**Gating the tabs.** Favorites, Cart and Account are gated inline by `SessionGate`: a guest sees "سجّل الدخول لمتابعة التسوق" with login/register buttons inside the tab (the bottom bar stays) and the tab swaps to the real content after login. `/orders`, `/notifications`, `/checkout` and the like still redirect to `/login?from=...`. Return paths are sanitized (`safeReturnPath`, like the web's `safeNext`).
 
 **Google sign-in today (dev only).** There are no OAuth client IDs yet. With `GOOGLE_SERVER_CLIENT_ID` empty, non-release builds use `DevGoogleAuthService`, which sends the backend's dev token `dev-google|<sub>|dev-<sub>@example.test|مستخدم تجريبي` (the backend must run with `GOOGLE_DEV_MODE=true`, development only). The random `sub` is created once and kept in secure storage, so every tap is the same fake user, as in the web. The button is labelled "دخول تجريبي بـ Google". A **release build without a client ID shows no Google button at all**. Once real IDs exist, set `GOOGLE_SERVER_CLIENT_ID` (see the manual steps below) and the app switches to the real `google_sign_in` flow automatically; the dev service is never selected then. New Google users go through complete-profile (name prefilled + phone).
 
@@ -139,7 +139,71 @@ Everything below mirrors what lamsa-web does against the same backend; the backe
 
 **Platform.** Android now declares `INTERNET` (a release build had no network at all before) plus location permissions; iOS has `NSLocationWhenInUseUsageDescription`. Neither the map nor geolocator has been run on a device.
 
-**Deferred.** Notification preferences UI and the notifications screen, account deletion, admin features. Multi-address delivery splitting is not a backend feature.
+**Deferred.** Account deletion, admin features. Multi-address delivery splitting is not a backend feature.
+
+## Push notifications (phase 5)
+
+Everything here follows the backend README's *Notifications for app developers* (lamsa-web has no push; its inbox and its link mapping are mirrored). Real push cannot be exercised until the Firebase config files exist, so all of it is tested with a fake FCM (`PushMessaging` is the only seam to `firebase_messaging`) and the real-device checks are in the *Manual QA checklist* below.
+
+**Token lifecycle.** `PushService` (phase 0's scaffolding, completed): Firebase starts in `main` (inert without config files); the token is registered silently after every sign-in (forced, so an account switch on the same device moves the token) and after session restore; registered again when FCM rotates it and when the app resumes with a changed token; unregistered with `POST /users/me/devices/unregister` before logout. The last registered token is also kept on the device, so logout can unregister it after an app restart. Register sends `{fcm_token, platform}` (`android`/`ios`). Known limit: if the unregister call fails (offline) logout still proceeds; the backend deletes tokens FCM reports as unregistered and moves a token seen on another account.
+
+**Permission (never at launch or login).** Two contextual triggers: (1) the **order confirmation screen** shows a short Arabic explainer ("تابع طلبك لحظة بلحظة"), and only if the customer agrees the system prompt appears (once; "ليس الآن" is remembered), because order updates cannot be switched off and the value is clearest right after ordering; (2) a **banner at the top of the inbox and the preferences**: a button while the permission was never asked, a short "enable it in the device settings" hint once refused (no extra package to open settings). Android 12 and below need no prompt.
+
+**Foreground.** A push that arrives while the app is open is drawn as an in-app banner at the top (5 s, tap opens its link, close button) instead of a local-notification plugin: no extra dependency or native setup, identical on both platforms. It also raises the unread badge at once and confirms it with the backend. **Background / terminated:** the system draws the notification (the backend sends a `notification` block); tapping it goes through `onMessageOpenedApp` / `getInitialMessage` to one handler. A tap that launches the app waits for the session and the first frame before navigating. A top-level `@pragma('vm:entry-point')` background handler (`push_background.dart`) is registered with `FirebaseMessaging.onBackgroundMessage`.
+
+**Android channels.** The backend sets `channel_id` to `orders` (high importance) or `marketing`; both are created in `MainActivity.kt` (Arabic names in `res/values/strings.xml`), plus `POST_NOTIFICATIONS`, a default channel and the default icon in the manifest. The Google services Gradle plugin is applied by `app/build.gradle.kts` **only if `android/app/google-services.json` exists**, so the build works before and after the file is added.
+
+**Links (one mapping for push taps, banners and inbox rows)** (`resolveNotificationTarget`): `order` (positive integer id) opens the order; `product`/`category`/`brand` the screen (the value is the slug, URL-encoded); `new`/`sale` the lists; `url` the browser, **https only**; `none` opens the order for an order update, the cart for a cart reminder, otherwise the inbox (for an inbox row `none` only marks it read). `admin_order`, `admin_product`, unknown and malformed links do nothing and stay on the current screen (they are not marked read). A guest who taps an order push is sent to login and returns to the order.
+
+**Deduplication.** Delivery is at least once, so the app keeps the newest 100 `notification_id`s on the device in two sets: banners shown and pushes opened (so a banner that was shown can still be tapped). A push without an id (the admin test push, `test: "1"`) is shown every time, never counted, never marked read. After a tap the notification is marked read (`POST /notifications/{id}/read`).
+
+**Inbox** (Account > الإشعارات, `/notifications`): newest first, 20 per page with infinite scroll and pull to refresh, an unread dot and bolder title, relative times ("قبل 5 دقائق", "قبل ساعتين") within a day then the Damascus date and time, tap to mark read and open its link, "تعليم الكل كمقروء", empty and error states, a link to the preferences. **Preferences** (`/account/notification-settings`, from the inbox and the account menu): the backend's three switches (`notify_marketing`, `notify_favorites`, `notify_cart_reminders`), each saved alone with rollback on failure, and **order updates shown as an "always on" note, not a switch** (plus a note that the store's direct messages always arrive). Quiet hours are enforced by the backend; nothing client-side.
+
+**Badge.** `UnreadCubit` (the same role as the cart/favorites cubits) feeds a count badge on the **Account tab** icon and the inbox row of the account menu (the inbox lives in the account menu, and lamsa-web's account navigation carries it too). It loads after sign-in/restore, updates from the inbox, from mark-read / mark-all responses, from foreground pushes and when the app resumes, and goes to 0 at sign-out.
+
+### Manual Firebase steps still required
+
+These are the phase 0 checklist items under *Manual steps still required* (below); nothing new except that the Android Gradle plugin and manifest items there are now done in code. What is left, in order: (1) add the Android app (`com.lamsa.app`) in Firebase project `lamsa-c3e53` and put `google-services.json` in `android/app/`; (2) add the iOS app (`com.lamsa.app`) and put `GoogleService-Info.plist` in `ios/Runner/` (Xcode: add it to the Runner target); (3) iOS: upload an APNs auth key to Firebase and, in Xcode, enable the **Push Notifications** capability (this creates the `aps-environment` entitlement) and **Background Modes > Remote notifications** (the `UIBackgroundModes` key is already in `Info.plist`); (4) make sure the backend runs with `PUSH_BACKEND=firebase` and `FIREBASE_CREDENTIALS_PATH` pointing at the service-account JSON (its README, *Push notifications: Firebase and the worker*) and its worker is running; (5) run the QA checklist below on a real Android phone and a real iPhone (the iOS simulator does not receive remote pushes).
+
+### Manual QA checklist (real push, once Firebase is configured)
+
+Use two accounts if possible. `POST /admin/notifications/test` (admin app) pushes to your own devices only, with an empty id and no inbox row, a quick way to check the setup. Tick each on **Android** and **iOS**.
+
+Setup and permission
+- [ ] Fresh install: no notification prompt on launch, on the login screen or right after login.
+- [ ] After login the device appears in the backend (`user_devices`) with the right platform, even before any prompt.
+- [ ] Place an order: the confirmation screen shows the explainer; "ليس الآن" does not show the system prompt and the explainer does not return on the next order.
+- [ ] Place another order on a fresh install and allow: the system prompt appears (Android 13+, iOS) and pushes start arriving.
+- [ ] Deny the system prompt: the inbox and the preferences show the "enable it in the device settings" hint; enabling it in the settings and coming back removes the hint.
+- [ ] Inbox banner button asks the system prompt when the permission was never asked.
+
+Foreground
+- [ ] App open: an order status change (admin changes the order) shows the in-app banner with the right Arabic title/body; it disappears after about 5 seconds; the close button works.
+- [ ] The badge on the Account tab and the inbox row goes up at once and matches the inbox.
+- [ ] Tapping the banner opens the right screen (order, product, category, brand, new, sale) and the notification becomes read; the badge goes down.
+- [ ] iOS: no second system banner appears on top of the in-app one.
+- [ ] The same push delivered twice (kill the worker mid-send, restart it) produces one banner.
+
+Background / terminated
+- [ ] App in the background: the system notification appears (Android in the **orders** channel, high importance, heads-up; marketing pushes in the **marketing** channel); tapping it opens the right screen and marks it read.
+- [ ] App killed (swipe away): tap a push; the app launches and ends on the right screen (not on home or the splash), with the session restored.
+- [ ] Tap an order push while logged out: login appears, then the order after logging in.
+- [ ] Each link type: order, product, category, brand, new, sale, https url (opens the browser), none (inbox; a cart reminder opens the cart).
+- [ ] Android notification settings list two channels with Arabic names.
+- [ ] iOS: the badge number on the app icon matches the unread count.
+
+Token lifecycle
+- [ ] Kill and restart the app: pushes still arrive and no duplicate device row appears.
+- [ ] Reinstall the app: the new token is registered after login (the old one disappears once FCM reports it unregistered).
+- [ ] Logout: the device row is removed and no further pushes arrive; logging in as another account moves the device to that account.
+- [ ] Logout from all devices and "session expired" also leave the phone without pushes for the old account.
+
+Inbox and preferences
+- [ ] Inbox shows past notifications with the right read/unread state, "قبل N دقائق" times, infinite scroll after 20 items, mark one / mark all read; the badge always matches.
+- [ ] Turn off **العروض والحملات**: a marketing campaign no longer arrives and also disappears from the inbox; turn it back on and it returns.
+- [ ] Turn off **تنبيهات المفضلة** and **تذكير السلة** and confirm those pushes stop.
+- [ ] Order updates keep arriving whatever is switched off, and there is no switch for them.
+- [ ] Quiet hours (21:00-09:00 Damascus): marketing / favorite alerts / cart reminders are held until 09:00; order updates are not.
 
 ## Auth and token storage (differs from the other two clients)
 
@@ -196,8 +260,8 @@ Push and Google sign-in are inert until these are done. The app boots and works 
 Firebase console (project `lamsa-c3e53`):
 - [ ] Add an Android app with package `com.lamsa.app`; add your debug and release SHA-1/SHA-256; download `google-services.json` into `android/app/`.
 - [ ] Add an iOS app with bundle ID `com.lamsa.app`; download `GoogleService-Info.plist` into `ios/Runner/` (needs Xcode on a Mac).
-- [ ] iOS: upload an APNs auth key in Project settings, Cloud Messaging; enable the Push Notifications and Background Modes (remote notifications) capabilities in Xcode.
-- [ ] Android: apply the Google services Gradle plugin (`com.google.gms.google-services`) in `android/settings.gradle.kts` and `android/app/build.gradle.kts` once `google-services.json` exists. Not added yet because the build fails without the file. Android 13+ also needs the `POST_NOTIFICATIONS` permission in the manifest, and the `orders` (high importance) and `marketing` notification channels still have to be created.
+- [ ] iOS: upload an APNs auth key in Project settings, Cloud Messaging; enable the Push Notifications capability in Xcode (creates the `aps-environment` entitlement) and Background Modes > Remote notifications (the `UIBackgroundModes` key is already in `Info.plist`).
+- [x] Android: the Google services Gradle plugin is declared in `android/settings.gradle.kts` and applied by `android/app/build.gradle.kts` automatically once `android/app/google-services.json` exists (phase 5), and the `POST_NOTIFICATIONS` permission and the `orders` / `marketing` channels are in the code. Nothing left here except adding the file above.
 - [ ] Optional later: a top-level background message handler, and moving to Firebase Installation IDs together with the backend's `token=` to `fid=` change (the app registers classic FCM tokens today).
 
 Google OAuth (Google Cloud console, same project):

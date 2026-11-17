@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lamsa_app/core/network/api_client.dart';
+import 'package:lamsa_app/core/platform/external_links.dart';
 import 'package:lamsa_app/core/router/app_router.dart';
 import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/core/storage/token_storage.dart';
@@ -22,8 +23,13 @@ import 'package:lamsa_app/features/catalog/data/catalog_api.dart';
 import 'package:lamsa_app/features/catalog/data/catalog_repository.dart';
 import 'package:lamsa_app/features/favorites/cubit/favorites_cubit.dart';
 import 'package:lamsa_app/features/favorites/presentation/favorites_screen.dart';
+import 'package:lamsa_app/features/notifications/cubit/unread_cubit.dart';
 import 'package:lamsa_app/features/notifications/data/devices_api.dart';
+import 'package:lamsa_app/features/notifications/data/notification_target.dart';
+import 'package:lamsa_app/features/notifications/data/notifications_api.dart';
+import 'package:lamsa_app/features/notifications/data/push_coordinator.dart';
 import 'package:lamsa_app/features/notifications/data/push_service.dart';
+import 'package:lamsa_app/features/notifications/presentation/push_widgets.dart';
 import 'package:lamsa_app/features/orders/data/orders_api.dart';
 
 /// Everything the widget tree needs, built once at startup (and replaceable
@@ -42,6 +48,9 @@ final class AppDependencies {
     required this.cartApi,
     required this.ordersApi,
     required this.addresses,
+    required this.notificationsApi,
+    required this.unread,
+    required this.coordinator,
   }) : router = buildRouter(session);
 
   /// Production wiring. The Dio/session/auth-API cycle is broken with lazy
@@ -72,6 +81,7 @@ final class AppDependencies {
     late final FavoritesCubit favorites;
     final ordersApi = OrdersApi(dio);
     final addresses = AddressesRepository(AddressesApi(dio));
+    final notificationsApi = NotificationsApi(dio);
     // The real guest-data merger (phase 3): merges, tells the shopper, then
     // switches the cart and favorites to the backend.
     final merger = CommerceMerger(
@@ -114,6 +124,7 @@ final class AppDependencies {
       lookup: catalogApi.productsByIds,
       detail: catalogApi.product,
     );
+    final unread = UnreadCubit(notificationsApi, session);
     deps = AppDependencies(
       session: session,
       authApi: authApi,
@@ -127,6 +138,25 @@ final class AppDependencies {
       cartApi: cartApi,
       ordersApi: ordersApi,
       addresses: addresses,
+      notificationsApi: notificationsApi,
+      unread: unread,
+      coordinator: PushCoordinator(
+        push: push,
+        session: session,
+        api: notificationsApi,
+        unread: unread,
+        navigate: (target) => navigateToTarget(deps.router, target),
+        whenReady: () async {
+          // A tap that launched the app arrives before the session is known
+          // and before the router has left the splash.
+          if (session.state.status == SessionStatus.unknown) {
+            await session.stream.firstWhere(
+              (s) => s.status != SessionStatus.unknown,
+            );
+          }
+          await WidgetsBinding.instance.endOfFrame;
+        },
+      ),
     );
     return deps;
   }
@@ -143,6 +173,9 @@ final class AppDependencies {
   final CartApi cartApi;
   final OrdersApi ordersApi;
   final AddressesRepository addresses;
+  final NotificationsApi notificationsApi;
+  final UnreadCubit unread;
+  final PushCoordinator coordinator;
   final GoRouter router;
 }
 
@@ -164,12 +197,15 @@ class LamsaApp extends StatelessWidget {
         RepositoryProvider.value(value: deps.cartApi),
         RepositoryProvider.value(value: deps.ordersApi),
         RepositoryProvider.value(value: deps.addresses),
+        RepositoryProvider.value(value: deps.notificationsApi),
+        RepositoryProvider.value(value: deps.coordinator),
       ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider.value(value: deps.session),
           BlocProvider.value(value: deps.cart),
           BlocProvider.value(value: deps.favorites),
+          BlocProvider.value(value: deps.unread),
         ],
         child: MaterialApp.router(
           scaffoldMessengerKey: rootMessengerKey,
@@ -188,7 +224,19 @@ class LamsaApp extends StatelessWidget {
           supportedLocales: const [Locale('ar')],
           builder: (context, child) => Directionality(
             textDirection: TextDirection.rtl,
-            child: child ?? const SizedBox.shrink(),
+            // A push that arrives in the foreground is drawn as a banner; when
+            // the app comes back, the badge and the token are refreshed.
+            child: ForegroundPushOverlay(
+              coordinator: deps.coordinator,
+              child: ResumeWatcher(
+                onResume: () {
+                  if (!deps.session.state.isAuthenticated) return;
+                  deps.unread.refresh().ignore();
+                  deps.push.registerForUser().ignore();
+                },
+                child: child ?? const SizedBox.shrink(),
+              ),
+            ),
           ),
         ),
       ),
@@ -207,4 +255,21 @@ void showMergeToast(MergeOutcome o, VoidCallback openCart) {
     actionLabel: Strings.toastCartAction,
     onAction: openCart,
   );
+}
+
+/// Goes to a notification target: tab routes (the cart) replace the stack,
+/// the rest are pushed above the current screen; links open in the browser.
+void navigateToTarget(GoRouter router, NotificationTarget target) {
+  switch (target) {
+    case InternalTarget(:final path, :final tab):
+      if (tab) {
+        router.go(path);
+      } else {
+        router.push<Object?>(path).ignore();
+      }
+    case ExternalTarget(:final uri):
+      ExternalLinks.open(uri).ignore();
+    case NoTarget():
+      break;
+  }
 }

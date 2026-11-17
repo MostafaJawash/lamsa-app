@@ -28,6 +28,7 @@ abstract final class Routes {
   static const orders = '/orders';
   static const account = '/account';
   static const notifications = '/notifications';
+  static const notificationSettings = '/account/notification-settings';
   static const checkout = '/checkout';
   static const checkoutDone = '/checkout/done';
   static const addresses = '/addresses';
@@ -44,7 +45,7 @@ abstract final class Routes {
   /// are gated inline by `SessionGate` (a "log in to continue" prompt inside
   /// the tab, keeping the bottom bar), which suits the shell better than a
   /// full-screen redirect.
-  static const protectedPrefixes = [orders, notifications, checkout, addresses];
+  static const protectedPrefixes = [orders, notifications, notificationSettings, checkout, addresses];
 
   /// `path` plus a `?from=` return path (omitted when it is just home).
   static String withFrom(String path, String? from) {

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/features/cart/cubit/cart_cubit.dart';
 import 'package:lamsa_app/features/favorites/cubit/favorites_cubit.dart';
+import 'package:lamsa_app/features/notifications/cubit/unread_cubit.dart';
 
 /// App frame with the 5-tab bottom navigation. Each tab keeps its own
 /// navigation stack and scroll position (`StatefulShellRoute`).
@@ -46,8 +47,8 @@ class MainShell extends StatelessWidget {
             label: Strings.cart,
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
+            icon: _AccountIcon(selected: false),
+            selectedIcon: _AccountIcon(selected: true),
             label: Strings.account,
           ),
         ],
@@ -103,6 +104,25 @@ class _FavoritesIcon extends StatelessWidget {
       builder: (context, count) => _CountBadge(
         count: count,
         child: Icon(selected ? Icons.favorite : Icons.favorite_border),
+      ),
+    );
+  }
+}
+
+/// The account tab carries the unread-notifications count (the inbox lives in
+/// the account menu), like lamsa-web's account navigation.
+class _AccountIcon extends StatelessWidget {
+  const _AccountIcon({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<UnreadCubit, int, int>(
+      selector: (n) => n,
+      builder: (context, count) => _CountBadge(
+        count: count,
+        child: Icon(selected ? Icons.person : Icons.person_outline),
       ),
     );
   }

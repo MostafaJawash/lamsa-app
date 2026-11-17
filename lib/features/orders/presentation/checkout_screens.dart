@@ -15,6 +15,8 @@ import 'package:lamsa_app/features/cart/cubit/cart_cubit.dart';
 import 'package:lamsa_app/features/cart/data/cart_api.dart';
 import 'package:lamsa_app/features/cart/data/models/cart_models.dart';
 import 'package:lamsa_app/features/catalog/presentation/widgets/catalog_art.dart';
+import 'package:lamsa_app/features/notifications/data/push_service.dart';
+import 'package:lamsa_app/features/notifications/presentation/push_widgets.dart';
 import 'package:lamsa_app/features/orders/cubit/checkout_cubit.dart';
 import 'package:lamsa_app/features/orders/data/models/order_models.dart';
 import 'package:lamsa_app/features/orders/data/orders_api.dart';
@@ -495,14 +497,32 @@ class _SummaryLine extends StatelessWidget {
   }
 }
 
-/// Order confirmation.
-class OrderSuccessScreen extends StatelessWidget {
+/// Order confirmation. It is also where the notification permission is asked
+/// (once, after a short explanation): order updates cannot be switched off, so
+/// the value of allowing them is clearest right now.
+class OrderSuccessScreen extends StatefulWidget {
   const OrderSuccessScreen({required this.order, super.key});
 
   final OrderDetail order;
 
   @override
+  State<OrderSuccessScreen> createState() => _OrderSuccessScreenState();
+}
+
+class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        offerPushPermission(context, context.read<PushService>()).ignore();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final order = widget.order;
     final c = context.lamsa;
     final theme = Theme.of(context).textTheme;
     return Scaffold(

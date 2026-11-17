@@ -532,4 +532,55 @@ abstract final class Strings {
     if (mod100 >= 11) return many;
     return other;
   }
+
+  // Notifications.
+  static const notifUnavailable =
+      'تعذّر تحميل الإشعارات الآن، يُرجى المحاولة لاحقًا';
+  static const notifEmptyTitle = 'لا توجد إشعارات بعد';
+  static const notifEmptyText = 'ستظهر هنا تحديثات طلباتك وعروض المتجر.';
+  static const notifMarkAll = 'تعليم الكل كمقروء';
+  static const notifUnreadLabel = 'غير مقروء';
+  static const notifBannerClose = 'إغلاق';
+  static const notifJustNow = 'الآن';
+  static String notifMinutesAgo(int n) => switch (n) {
+        1 => 'قبل دقيقة',
+        2 => 'قبل دقيقتين',
+        >= 3 && <= 10 => 'قبل $n دقائق',
+        _ => 'قبل $n دقيقة',
+      };
+  static String notifHoursAgo(int n) => switch (n) {
+        1 => 'قبل ساعة',
+        2 => 'قبل ساعتين',
+        >= 3 && <= 10 => 'قبل $n ساعات',
+        _ => 'قبل $n ساعة',
+      };
+
+  // Notification preferences.
+  static const prefsTitle = 'تفضيلات الإشعارات';
+  static const prefsLead = 'اختر الإشعارات التي تريد أن تصلك.';
+  static const prefsMarketing = 'العروض والحملات';
+  static const prefsMarketingHint =
+      'عروض المتجر وأخباره. عند إيقافها تُخفى أيضًا من صندوق الإشعارات.';
+  static const prefsFavorites = 'تنبيهات المفضلة';
+  static const prefsFavoritesHint = 'عودة منتج مفضّل إلى المخزون أو انخفاض سعره.';
+  static const prefsCartReminders = 'تذكير السلة';
+  static const prefsCartRemindersHint = 'تذكير بسلة تركتها دون إتمام الطلب.';
+  static const prefsOrderUpdates = 'تحديثات الطلب';
+  static const prefsAlwaysOn = 'مفعّلة دائمًا';
+  static const prefsOrderUpdatesHint =
+      'حالة طلباتك (التأكيد والتجهيز والشحن والتسليم) تصلك دائمًا ولا يمكن إيقافها.';
+  static const prefsStoreMessages =
+      'رسائل المتجر المرسلة إليك مباشرة تصلك دائمًا أيضًا.';
+
+  // Asking for the notification permission.
+  static const pushAskTitle = 'فعّل الإشعارات';
+  static const pushAskText = 'لتصلك تحديثات طلباتك فور حدوثها.';
+  static const pushAskAction = 'تفعيل';
+  static const pushDeniedText =
+      'الإشعارات معطّلة لهذا التطبيق. فعّلها من إعدادات الجهاز (الإشعارات) لتصلك تحديثات طلباتك.';
+  static const pushExplainTitle = 'تابع طلبك لحظة بلحظة';
+  static const pushExplainText =
+      'اسمح بالإشعارات لنخبرك عند تأكيد طلبك وتجهيزه وشحنه وتسليمه.';
+  static const pushExplainAllow = 'السماح بالإشعارات';
+  static const pushExplainLater = 'ليس الآن';
 }

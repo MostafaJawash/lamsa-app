@@ -11,6 +11,7 @@ import 'package:lamsa_app/core/widgets/state_views.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
 import 'package:lamsa_app/features/auth/data/models/auth_user.dart';
 import 'package:lamsa_app/features/auth/presentation/session_gate.dart';
+import 'package:lamsa_app/features/notifications/cubit/unread_cubit.dart';
 
 /// Account tab: a guest sees the inline login prompt; a signed-in user sees
 /// their profile, the menu (orders, addresses, profile, phone, password) and
@@ -116,10 +117,12 @@ class _AccountViewState extends State<_AccountView> {
                 const _Menu(
                   items: [
                     (Icons.receipt_long_outlined, Strings.accountOrders, Routes.orders),
+                    (Icons.notifications_none, Strings.notifications, Routes.notifications),
                     (Icons.location_on_outlined, Strings.accountAddresses, Routes.addresses),
                     (Icons.person_outline, Strings.accountProfile, Routes.profile),
                     (Icons.phone_outlined, Strings.accountPhone, Routes.phone),
                     (Icons.lock_outline, Strings.accountPassword, Routes.password),
+                    (Icons.tune, Strings.prefsTitle, Routes.notificationSettings),
                   ],
                 ),
                 const SizedBox(height: Spacing.xl),
@@ -158,7 +161,22 @@ class _Menu extends StatelessWidget {
             ListTile(
               leading: Icon(items[i].$1, color: context.lamsa.accent),
               title: Text(items[i].$2),
-              trailing: const Icon(Icons.chevron_left),
+              trailing: items[i].$3 == Routes.notifications
+                  ? BlocBuilder<UnreadCubit, int>(
+                      builder: (context, count) => Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (count > 0)
+                            Badge(
+                              label: Text(
+                                count > 99 ? Strings.badgeOverflow : '$count',
+                              ),
+                            ),
+                          const Icon(Icons.chevron_left),
+                        ],
+                      ),
+                    )
+                  : const Icon(Icons.chevron_left),
               onTap: () => context.push(items[i].$3),
             ),
           ],

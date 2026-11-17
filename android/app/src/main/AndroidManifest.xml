@@ -5,6 +5,9 @@
     <!-- Optional "use my current location" on the address map picker. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Android 13+: runtime permission for notifications, asked at the order
+         confirmation (see PushService), never at launch. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
         android:label="لمسة"
         android:name="${applicationName}"
@@ -33,6 +36,14 @@
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <!-- Push: a push without its own channel falls back to "marketing";
+             the small icon is the launcher icon until a monochrome one exists. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="marketing" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

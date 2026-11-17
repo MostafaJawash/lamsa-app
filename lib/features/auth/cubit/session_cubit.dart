@@ -80,7 +80,7 @@ final class SessionCubit extends Cubit<SessionState> {
   Future<void> signIn(TokenPair pair) async {
     await _storage.write(pair.toStored(_now()));
     emit(SessionState(SessionStatus.authenticated, pair.user));
-    await _push.registerForUser();
+    await _push.registerForUser(force: true);
     // The backend refuses cart/favorites calls while a temporary password is
     // pending, so the merge waits for the password change (which signs in again).
     if (!pair.user.mustChangePassword) await _mergeGuestData();

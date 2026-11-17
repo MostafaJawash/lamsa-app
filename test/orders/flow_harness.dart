@@ -4,14 +4,24 @@ import 'package:lamsa_app/app.dart';
 import 'package:lamsa_app/features/account/data/addresses_repository.dart';
 import 'package:lamsa_app/features/account/data/models/address_models.dart';
 import 'package:lamsa_app/features/account/presentation/location_picker.dart';
+import 'package:lamsa_app/features/notifications/data/push_service.dart';
 
 import '../auth/auth_fakes.dart';
 import '../catalog/catalog_fakes.dart';
+import '../notifications/notification_fakes.dart';
 import 'orders_fakes.dart';
 
 /// The whole app over fakes, signed in with a stored session.
 class AppFlow {
-  AppFlow._(this.deps, this.auth, this.orders, this.addresses, this.cartApi, this.storage);
+  AppFlow._(
+    this.deps,
+    this.auth,
+    this.orders,
+    this.addresses,
+    this.cartApi,
+    this.storage,
+    this.notifications,
+  );
 
   final AppDependencies deps;
   final FakeAuthApi auth;
@@ -19,6 +29,7 @@ class AppFlow {
   final FakeAddressesApi addresses;
   final CheckoutCartApi cartApi;
   final MemoryTokenStorage storage;
+  final FakeNotificationsApi notifications;
 
   static Future<AppFlow> launch(
     WidgetTester tester, {
@@ -28,6 +39,8 @@ class AppFlow {
     CheckoutCartApi? cartApi,
     bool signedIn = true,
     FakeAddressesApi? addressesApi,
+    PushService? push,
+    FakeNotificationsApi? notifications,
   }) async {
     tester.view.physicalSize = const Size(420, 2400);
     tester.view.devicePixelRatio = 1;
@@ -37,6 +50,7 @@ class AppFlow {
     final theAddresses = addressesApi ??
         FakeAddressesApi(addresses: addressList ?? [addr(1, isDefault: true)]);
     final theCart = cartApi ?? CheckoutCartApi();
+    final theNotifications = notifications ?? FakeNotificationsApi();
     final storage = MemoryTokenStorage(signedIn ? storedTokens() : null);
     final session = makeSession(api: theAuth, storage: storage);
     final deps = makeDeps(
@@ -46,11 +60,13 @@ class AppFlow {
       ordersApi: theOrders,
       addresses: AddressesRepository(theAddresses),
       cartApi: theCart,
+      push: push,
+      notificationsApi: theNotifications,
     );
     await tester.pumpWidget(LamsaApp(deps: deps));
     await deps.session.restore();
     await tester.pumpAndSettle();
-    return AppFlow._(deps, theAuth, theOrders, theAddresses, theCart, storage);
+    return AppFlow._(deps, theAuth, theOrders, theAddresses, theCart, storage, theNotifications);
   }
 
   /// Goes to [location] and lets the screen load.

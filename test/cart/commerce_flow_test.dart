@@ -82,7 +82,8 @@ void main() {
   group('tab badges (live, guest and signed in)', () {
     testKit('the cart and favorites badges follow guest changes', (tester) async {
       await launch(tester);
-      expect(find.byType(Badge), findsNWidgets(2));
+      // Cart, favorites and the account tab (unread notifications).
+      expect(find.byType(Badge), findsNWidgets(3));
       expect(
         tester.widgetList<Badge>(find.byType(Badge)).every((b) => !b.isLabelVisible),
         isTrue,
