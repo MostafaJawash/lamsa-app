@@ -7,11 +7,16 @@ import 'package:lamsa_app/features/auth/data/guest_data_merger.dart';
 import 'package:lamsa_app/features/auth/data/models/auth_user.dart';
 import 'package:lamsa_app/features/auth/data/models/google_auth_result.dart';
 import 'package:lamsa_app/features/auth/data/models/token_pair.dart';
+import 'package:lamsa_app/features/cart/cubit/cart_cubit.dart';
+import 'package:lamsa_app/features/cart/data/guest_store.dart';
 import 'package:lamsa_app/features/catalog/data/catalog_repository.dart';
+import 'package:lamsa_app/features/favorites/cubit/favorites_cubit.dart';
+import 'package:lamsa_app/features/favorites/presentation/favorites_screen.dart';
 import 'package:lamsa_app/features/notifications/data/devices_api.dart';
 import 'package:lamsa_app/features/notifications/data/push_service.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../cart/cart_fakes.dart';
 import '../catalog/catalog_fakes.dart';
 
 AuthUser testUser({
@@ -202,17 +207,40 @@ SessionCubit makeSession({
   onSignedOut: onSignedOut,
 );
 
-/// Whole-app wiring with fakes, for router-level tests.
+/// Whole-app wiring with fakes, for router-level tests. Cart and favorites
+/// run over an empty fake shop unless [commerce] is given (then it must have
+/// been built over the same [session]).
 AppDependencies makeDeps({
   required SessionCubit session,
   required FakeAuthApi api,
   FakeCatalogApi? catalogApi,
   GoogleAuthService? google,
-}) => AppDependencies(
-  session: session,
-  authApi: api,
-  catalog: CatalogRepository(catalogApi ?? FakeCatalogApi()),
-  devicesApi: _MockDevicesApi(),
-  push: PushService(_MockDevicesApi()),
-  google: google ?? FakeGoogle(),
-);
+  CartCubit? cart,
+  FavoritesCubit? favorites,
+  FavoritesDeps? favoritesDeps,
+}) {
+  final store = MemoryGuestStore();
+  final cartApi = FakeCartApi(FakeShop([]));
+  final theCart = cart ?? CartCubit(api: cartApi, store: store, session: session);
+  final theFavorites = favorites ??
+      FavoritesCubit(
+        api: cartApi,
+        store: store,
+        session: session,
+        cart: theCart,
+        lookup: (ids) async => const [],
+        detail: (slug) async => throw StateError('no detail'),
+      );
+  return AppDependencies(
+    session: session,
+    authApi: api,
+    catalog: CatalogRepository(catalogApi ?? FakeCatalogApi()),
+    devicesApi: _MockDevicesApi(),
+    push: PushService(_MockDevicesApi()),
+    google: google ?? FakeGoogle(),
+    cart: theCart,
+    favorites: theFavorites,
+    favoritesDeps: favoritesDeps ??
+        FavoritesDeps(api: cartApi, store: store, lookup: (ids) async => const []),
+  );
+}

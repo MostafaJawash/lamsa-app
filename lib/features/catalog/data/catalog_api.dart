@@ -38,6 +38,14 @@ class CatalogApi {
   Future<ProductPage> products(List<(String, String)> query) async =>
       ProductPage.fromJson(await _map('/products', query));
 
+  /// The visible products among [ids] (at most 100), out-of-stock ones
+  /// included, in the order given. Bad ids are a `422`.
+  Future<List<ProductCard>> productsByIds(List<int> ids) async {
+    if (ids.isEmpty) return const [];
+    final page = await products([('ids', ids.join(',')), ('page_size', '100')]);
+    return page.items;
+  }
+
   /// [query] comes from `CatalogQuery.facets`.
   Future<Facets> facets(List<(String, String)> query) async =>
       Facets.fromJson(await _map('/products/facets', query));

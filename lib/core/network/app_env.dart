@@ -35,15 +35,18 @@ abstract final class AppEnv {
 
   static bool get googleSignInConfigured => googleServerClientId.isNotEmpty;
 
-  /// The dev backend may emit media URLs on `localhost`/`127.0.0.1`, which an
-  /// Android emulator cannot reach; point them at the configured origin.
-  static String resolveMediaUrl(String url) {
+  /// The dev backend may emit media URLs on `localhost`/`127.0.0.1` (and its
+  /// own port), which an Android emulator or a phone cannot reach, or which
+  /// belong to another server on this machine; point them at the configured
+  /// origin (host AND port). [origin] is only for tests.
+  static String resolveMediaUrl(String url, {String? origin}) {
     final uri = Uri.tryParse(url);
-    final base = Uri.parse(origin);
+    final base = Uri.parse(origin ?? AppEnv.origin);
     if (uri == null || !uri.hasAuthority) return url;
     const loopback = {'localhost', '127.0.0.1'};
-    if (loopback.contains(uri.host) && uri.host != base.host) {
-      return uri.replace(host: base.host).toString();
+    if (loopback.contains(uri.host) &&
+        (uri.host != base.host || uri.port != base.port)) {
+      return uri.replace(host: base.host, port: base.port).toString();
     }
     return url;
   }

@@ -7,8 +7,9 @@ import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
-import 'package:lamsa_app/core/widgets/coming_soon.dart';
+import 'package:lamsa_app/core/widgets/app_messenger.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
+import 'package:lamsa_app/features/cart/cubit/cart_cubit.dart';
 import 'package:lamsa_app/features/catalog/cubit/load_status.dart';
 import 'package:lamsa_app/features/catalog/cubit/product_detail_cubit.dart';
 import 'package:lamsa_app/features/catalog/data/catalog_repository.dart';
@@ -19,6 +20,7 @@ import 'package:lamsa_app/features/catalog/presentation/categories_screen.dart'
 import 'package:lamsa_app/features/catalog/presentation/widgets/catalog_art.dart';
 import 'package:lamsa_app/features/catalog/presentation/widgets/product_card_view.dart';
 import 'package:lamsa_app/features/catalog/presentation/widgets/sections.dart';
+import 'package:lamsa_app/features/favorites/presentation/favorite_button.dart';
 
 class ProductScreen extends StatelessWidget {
   const ProductScreen({required this.slug, super.key});
@@ -171,31 +173,12 @@ class _LoadedState extends State<_Loaded> {
                   ),
                 ),
               const SizedBox(height: Spacing.lg),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton(
-                      // Disabled only for real state (sold out), never for
-                      // "not built yet": that case shows a snackbar.
-                      onPressed: out ? null : () => showComingSoon(context),
-                      child: Text(
-                        out ? Strings.productOut : Strings.productAddToCart,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: Spacing.md),
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(Spacing.controlHeight, Spacing.controlHeight),
-                      padding: EdgeInsets.zero,
-                    ),
-                    onPressed: () => showComingSoon(context),
-                    child: const Icon(
-                      Icons.favorite_border,
-                      semanticLabel: Strings.productFavorite,
-                    ),
-                  ),
-                ],
+              // Keyed by variant: switching variant resets quantity and limits.
+              _BuyBar(
+                key: ValueKey('buy-${variant?.id}'),
+                product: product,
+                variant: variant,
+                stock: stock,
               ),
               const SizedBox(height: Spacing.xl),
               _Tabs(
@@ -566,6 +549,124 @@ class _Related extends StatelessWidget {
       children: [
         const SectionHeader(title: Strings.productRelated),
         if (section.isLoading) const RailSkeleton() else ProductRail(products: items),
+      ],
+    );
+  }
+}
+
+/// Quantity stepper, "أضِف إلى السلة" and the heart. Works for guests and
+/// signed-in users (the cart cubit picks where the cart lives). The quantity
+/// respects the backend's low-stock count; an `INSUFFICIENT_STOCK` answer
+/// clamps it to what is left, and a sold-out item disables the button for
+/// real (not for "not built yet").
+class _BuyBar extends StatefulWidget {
+  const _BuyBar({
+    required this.product,
+    required this.variant,
+    required this.stock,
+    super.key,
+  });
+
+  final ProductDetail product;
+  final Variant? variant;
+  final StockView stock;
+
+  @override
+  State<_BuyBar> createState() => _BuyBarState();
+}
+
+class _BuyBarState extends State<_BuyBar> {
+  int _qty = 1;
+
+  /// What the backend last said is left for this item (0: nothing).
+  int? _limit;
+  bool _adding = false;
+
+  Future<void> _add() async {
+    setState(() => _adding = true);
+    final router = GoRouter.maybeOf(context);
+    final error = await context.read<CartCubit>().add(
+          productId: widget.product.id,
+          variantId: widget.variant?.id,
+          quantity: _qty,
+          slug: widget.product.slug,
+        );
+    if (!mounted) return;
+    setState(() {
+      _adding = false;
+      if (error?.code == 'OUT_OF_STOCK') _limit = 0;
+      if (error?.code == 'INSUFFICIENT_STOCK' && error?.available != null) {
+        _limit = error!.available;
+        _qty = _qty.clamp(1, _limit! < 1 ? 1 : _limit!);
+      }
+    });
+    if (error != null) {
+      showToast(error.text);
+      return;
+    }
+    showToast(
+      Strings.toastCartAdded,
+      actionLabel: Strings.toastCartAction,
+      onAction: router == null ? null : () => router.go(Routes.cart),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.lamsa;
+    final out = widget.stock.status == StockStatus.out || _limit == 0;
+    final max = (_limit != null && _limit! > 0 ? _limit! : maxQuantity(widget.stock))
+        .clamp(1, maxQuantity(widget.stock));
+    final qty = _qty.clamp(1, max);
+    return Row(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: c.line),
+            borderRadius: BorderRadius.circular(Radii.lg),
+          ),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: Strings.quantityLess,
+                icon: const Icon(Icons.remove),
+                onPressed: out || qty <= 1 ? null : () => setState(() => _qty = qty - 1),
+              ),
+              Text('$qty', style: Theme.of(context).textTheme.titleMedium),
+              IconButton(
+                tooltip: Strings.quantityMore,
+                icon: const Icon(Icons.add),
+                onPressed: out || qty >= max ? null : () => setState(() => _qty = qty + 1),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: Spacing.md),
+        Expanded(
+          child: FilledButton(
+            // Disabled only for real state (sold out), never for a missing feature.
+            onPressed: out || _adding ? null : _add,
+            child: _adding
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.4),
+                  )
+                : Text(out ? Strings.productOut : Strings.productAddToCart),
+          ),
+        ),
+        const SizedBox(width: Spacing.md),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: c.line),
+            borderRadius: BorderRadius.circular(Radii.lg),
+          ),
+          child: FavoriteButton(
+            productId: widget.product.id,
+            slug: widget.product.slug,
+            size: 24,
+            overlay: false,
+          ),
+        ),
       ],
     );
   }

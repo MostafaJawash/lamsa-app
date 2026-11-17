@@ -145,3 +145,12 @@ List<ProductImage> imagesFor(ProductDetail product, Variant? variant) {
   final general = product.images.where((i) => i.variantId == null).toList();
   return general.isNotEmpty ? general : product.images;
 }
+
+/// Largest quantity for the stepper: 1..10, bounded by the stock left (only
+/// known for the backend's `low` status). A sold-out item allows 1 (the add
+/// button is disabled anyway).
+int maxQuantity(StockView stock) {
+  if (stock.status == StockStatus.out) return 1;
+  final left = stock.left ?? 10;
+  return left.clamp(1, 10);
+}

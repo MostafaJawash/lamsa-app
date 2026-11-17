@@ -131,6 +131,79 @@ abstract final class Strings {
   static const accountUnavailable =
       'تعذّر تحميل معلومات حسابك حاليًا. يُرجى المحاولة لاحقًا.';
 
+  // Cart.
+  static const cartSummary = 'ملخص الطلب';
+  static const cartSubtotal = 'المجموع الفرعي';
+  static const cartSavings = 'وفّرت';
+  static const cartTotal = 'الإجمالي';
+  static const cartDelivery = 'التوصيل';
+  static const cartDeliveryNext = 'يُحدَّد في الخطوة التالية';
+  static const cartCheckoutSoon = 'إتمام الطلب قريبًا';
+  static const cartFixFirst = 'حدّث سلتك أولًا لتتمكن من إتمام الطلب.';
+  static const cartCheckoutHint = 'اختر طريقة التوصيل في الخطوة التالية.';
+  static const cartRemove = 'احذف';
+  static const cartEmptyTitle = 'سلتك فارغة';
+  static const cartEmptyText = 'أضِف منتجات من الأقسام لتظهر هنا.';
+  static const cartStartShopping = 'ابدأ التسوق';
+  static const cartUnavailable = 'تعذّر تحميل سلتك الآن، يُرجى المحاولة لاحقًا';
+  static const cartIssuesNotice = 'تغيّرت بعض المنتجات في سلتك';
+  static const cartResolve = 'تحديث السلة';
+  static const cartUpdated = 'تم تحديث سلتك';
+  static const cartClear = 'إفراغ السلة';
+  static const cartClearTitle = 'إفراغ السلة؟';
+  static const cartClearText = 'ستُزال كل المنتجات من سلتك.';
+  static const cartClearConfirm = 'إفراغ';
+  static const cancel = 'إلغاء';
+  static const cartUnknownProduct = 'منتج غير متوفر';
+  static const quantity = 'الكمية';
+  static const quantityLess = 'أقل';
+  static const quantityMore = 'المزيد';
+  static const lineTotal = 'المجموع';
+  static String items(int n) => _plural(
+        n,
+        zero: 'لا توجد قطع',
+        one: 'قطعة واحدة',
+        two: 'قطعتان',
+        few: '$n قطع',
+        many: '$n قطعة',
+        other: '$n قطعة',
+      );
+
+  // Cart: line issues and notices (codes from the backend).
+  static const issueUnavailable = 'لم يعد المنتج متوفرًا';
+  static const issueVariantUnavailable = 'لم يعد هذا الخيار متوفرًا';
+  static const issueOutOfStock = 'نفدت الكمية';
+  static String issueInsufficientStock(int n) => 'لم يتبقَّ سوى $n';
+  static String issueQuantityLimit(int n) => 'الحد الأقصى $n';
+  static const noticeQuantityCapped = 'عُدّلت الكمية وفقًا للمخزون المتوفر';
+  static const noticeLinesMerged = 'دُمج منتجان متطابقان في سطر واحد';
+  static const noticeLineRemoved = 'أُزيل منتج لم يعد متوفرًا';
+
+  // Favorites.
+  static const favoritesSub =
+      'المنتجات التي حفظتها، يمكنك نقلها إلى السلة بضغطة واحدة.';
+  static const favoritesMoveToCart = 'انقل إلى السلة';
+  static const favoritesRemove = 'إزالة من المفضلة';
+  static const favoritesEmptyTitle = 'المفضلة فارغة';
+  static const favoritesEmptyText = 'اضغط على القلب في أي منتج لحفظه هنا.';
+  static const favoritesBrowseNew = 'تصفّح الجديد';
+  static const favoritesUnavailable =
+      'تعذّر تحميل المفضلة الآن، يُرجى المحاولة لاحقًا';
+
+  // Toasts.
+  static const toastFavAdded = 'أُضيف إلى المفضلة';
+  static const toastFavRemoved = 'أُزيل من المفضلة';
+  static const toastFavAction = 'المفضلة';
+  static const toastCartAdded = 'أُضيف إلى السلة';
+  static const toastCartAction = 'عرض السلة';
+  static const toastMoved = 'نُقل إلى السلة';
+  static const toastMovedAction = 'السلة';
+  static String toastMerged(int n) => 'أعدنا ${products(n)} إلى سلتك';
+  static const toastMergedAdjusted = 'عُدّلت بعض المنتجات وفقًا للمخزون المتوفر';
+  static String toastLow(int n) => 'لم يتبقَّ سوى $n';
+  static String toastMax(int n) => 'الحد الأقصى $n';
+  static const badgeOverflow = '99+';
+
   // Catalog: navigation and titles.
   static const categories = 'الأقسام';
   static const newArrivals = 'جديد';

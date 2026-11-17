@@ -161,11 +161,11 @@ void main() {
       },
     );
 
-    testWidgets('login from a gated tab returns to that tab, in place', (
+    testWidgets('login from the gated Account tab returns to that tab, in place', (
       tester,
     ) async {
       await launch(tester);
-      await tester.tap(navTab(Strings.cart));
+      await tester.tap(navTab(Strings.account));
       await tester.pumpAndSettle();
       expect(find.text(Strings.gateTitle), findsOneWidget);
       expect(find.byType(NavigationBar), findsOneWidget); // still in the shell
@@ -180,24 +180,29 @@ void main() {
 
       expect(find.text(Strings.loginLead), findsNothing);
       expect(find.text(Strings.gateTitle), findsNothing);
-      expect(
-        find.text(Strings.comingSoon),
-        findsOneWidget,
-      ); // the real cart tab
+      expect(find.text('ليلى'), findsOneWidget); // the real account tab
       expect(find.byType(NavigationBar), findsOneWidget);
     });
 
-    testWidgets('favorites and account are gated the same way', (tester) async {
+    testWidgets('only the Account tab is gated: Cart and Favorites work for guests', (
+      tester,
+    ) async {
       await launch(tester);
-      for (final tab in [Strings.favorites, Strings.account]) {
-        await tester.tap(navTab(tab));
-        await tester.pumpAndSettle();
-        expect(find.text(Strings.gateTitle), findsOneWidget, reason: tab);
-        expect(
-          find.widgetWithText(OutlinedButton, Strings.register),
-          findsOneWidget,
-        );
-      }
+      await tester.tap(navTab(Strings.account));
+      await tester.pumpAndSettle();
+      expect(find.text(Strings.gateTitle), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, Strings.register),
+        findsOneWidget,
+      );
+      await tester.tap(navTab(Strings.cart));
+      await tester.pumpAndSettle();
+      expect(find.text(Strings.gateTitle), findsNothing);
+      expect(find.text(Strings.cartEmptyTitle), findsOneWidget);
+      await tester.tap(navTab(Strings.favorites));
+      await tester.pumpAndSettle();
+      expect(find.text(Strings.gateTitle), findsNothing);
+      expect(find.text(Strings.favoritesEmptyTitle), findsOneWidget);
     });
 
     testWidgets(

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lamsa_app/core/strings.dart';
-import 'package:lamsa_app/core/theme/lamsa_colors.dart';
-import 'package:lamsa_app/core/theme/spacing.dart';
+import 'package:lamsa_app/features/cart/cubit/cart_cubit.dart';
+import 'package:lamsa_app/features/favorites/cubit/favorites_cubit.dart';
 
 /// App frame with the 5-tab bottom navigation. Each tab keeps its own
 /// navigation stack and scroll position (`StatefulShellRoute`).
@@ -35,13 +36,13 @@ class MainShell extends StatelessWidget {
             label: Strings.categories,
           ),
           NavigationDestination(
-            icon: Icon(Icons.favorite_border),
-            selectedIcon: Icon(Icons.favorite),
+            icon: _FavoritesIcon(selected: false),
+            selectedIcon: _FavoritesIcon(selected: true),
             label: Strings.favorites,
           ),
           NavigationDestination(
-            icon: Icon(Icons.shopping_bag_outlined),
-            selectedIcon: Icon(Icons.shopping_bag),
+            icon: _CartIcon(selected: false),
+            selectedIcon: _CartIcon(selected: true),
             label: Strings.cart,
           ),
           NavigationDestination(
@@ -55,28 +56,53 @@ class MainShell extends StatelessWidget {
   }
 }
 
-/// Body of the not-yet-built tabs (favorites, cart), shown once signed in.
-/// Guests see the inline login prompt of `SessionGate` instead.
-///
-/// TODO(cart/favorites phases): replace with the real screens.
-class ComingSoonTab extends StatelessWidget {
-  const ComingSoonTab({required this.title, super.key});
+/// A count badge on a tab icon: hidden at 0, "99+" above 99. Live for guests
+/// (local data) and signed-in users (backend), like lamsa-web's tab bar.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count, required this.child});
 
-  final String title;
+  final int count;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title), automaticallyImplyLeading: false),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(Spacing.xl),
-          child: Text(
-            Strings.comingSoon,
-            style: Theme.of(context).textTheme.headlineSmall!
-                .copyWith(color: context.lamsa.muted),
-          ),
-        ),
+    return Badge(
+      isLabelVisible: count > 0,
+      label: Text(count > 99 ? Strings.badgeOverflow : '$count'),
+      child: child,
+    );
+  }
+}
+
+class _CartIcon extends StatelessWidget {
+  const _CartIcon({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<CartCubit, CartState, int>(
+      selector: (s) => s.count,
+      builder: (context, count) => _CountBadge(
+        count: count,
+        child: Icon(selected ? Icons.shopping_bag : Icons.shopping_bag_outlined),
+      ),
+    );
+  }
+}
+
+class _FavoritesIcon extends StatelessWidget {
+  const _FavoritesIcon({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<FavoritesCubit, FavoritesState, int>(
+      selector: (s) => s.ids.length,
+      builder: (context, count) => _CountBadge(
+        count: count,
+        child: Icon(selected ? Icons.favorite : Icons.favorite_border),
       ),
     );
   }

@@ -3,9 +3,9 @@ import 'package:lamsa_app/core/money/money_format.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
-import 'package:lamsa_app/core/widgets/coming_soon.dart';
 import 'package:lamsa_app/features/catalog/data/models/catalog_models.dart';
 import 'package:lamsa_app/features/catalog/presentation/widgets/catalog_art.dart';
+import 'package:lamsa_app/features/favorites/presentation/favorite_button.dart';
 
 /// Price with the struck-through regular price when on sale. Currencies are
 /// shown as the backend sent them: nothing is converted or summed.
@@ -140,14 +140,9 @@ class ProductCardView extends StatelessWidget {
                     PositionedDirectional(
                       top: 0,
                       end: 0,
-                      child: IconButton(
-                        tooltip: Strings.productFavorite,
-                        icon: const Icon(Icons.favorite_border, size: 20),
-                        color: c.ink,
-                        style: IconButton.styleFrom(
-                          backgroundColor: c.surface.withValues(alpha: .85),
-                        ),
-                        onPressed: () => showComingSoon(context),
+                      child: FavoriteButton(
+                        productId: product.id,
+                        slug: product.slug,
                       ),
                     ),
                   ],

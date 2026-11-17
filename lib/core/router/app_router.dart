@@ -10,12 +10,13 @@ import 'package:lamsa_app/features/account/presentation/account_screen.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
 import 'package:lamsa_app/features/auth/data/models/google_auth_result.dart';
 import 'package:lamsa_app/features/auth/presentation/auth_screens.dart';
-import 'package:lamsa_app/features/auth/presentation/session_gate.dart';
+import 'package:lamsa_app/features/cart/presentation/cart_screen.dart';
 import 'package:lamsa_app/features/catalog/data/list_filters.dart';
 import 'package:lamsa_app/features/catalog/presentation/categories_screen.dart';
 import 'package:lamsa_app/features/catalog/presentation/home_screen.dart';
 import 'package:lamsa_app/features/catalog/presentation/product_list_screen.dart';
 import 'package:lamsa_app/features/catalog/presentation/product_screen.dart';
+import 'package:lamsa_app/features/favorites/presentation/favorites_screen.dart';
 import 'package:lamsa_app/features/notifications/presentation/notifications_screen.dart';
 import 'package:lamsa_app/features/orders/presentation/orders_screen.dart';
 import 'package:lamsa_app/features/shell/main_shell.dart';
@@ -67,17 +68,13 @@ GoRouter buildRouter(SessionCubit session) {
               ),
             ],
           ),
-          // Favorites and cart: gated inline for guests; the real screens
-          // arrive in a later phase (until then a "coming soon" body).
+          // Favorites and cart work for guests too (kept on the device, validated
+          // by the backend); only the account tab is gated inline.
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: Routes.favorites,
-                builder: (_, _) => const SessionGate(
-                  title: Strings.favorites,
-                  returnPath: Routes.favorites,
-                  child: ComingSoonTab(title: Strings.favorites),
-                ),
+                builder: (_, _) => const FavoritesScreen(),
               ),
             ],
           ),
@@ -85,11 +82,7 @@ GoRouter buildRouter(SessionCubit session) {
             routes: [
               GoRoute(
                 path: Routes.cart,
-                builder: (_, _) => const SessionGate(
-                  title: Strings.cart,
-                  returnPath: Routes.cart,
-                  child: ComingSoonTab(title: Strings.cart),
-                ),
+                builder: (_, _) => const CartScreen(),
               ),
             ],
           ),

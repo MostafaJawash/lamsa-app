@@ -13,6 +13,7 @@ import 'package:lamsa_app/features/catalog/presentation/product_screen.dart';
 import 'package:lamsa_app/features/catalog/presentation/widgets/product_card_view.dart';
 import 'package:lamsa_app/features/catalog/presentation/widgets/sections.dart';
 
+import '../cart/cart_fakes.dart';
 import 'catalog_fakes.dart';
 
 Future<void> tallSurface(WidgetTester tester) async {
@@ -577,21 +578,40 @@ void main() {
       expect(button.onPressed, isNull);
     });
 
-    testWidgets('heart and add to cart are visible and say "coming soon"',
-        (tester) async {
+    testWidgets('add to cart and the heart are real for a guest', (tester) async {
       await tallSurface(tester);
       api.detail = variable();
-      await pumpCatalog(tester, const ProductScreen(slug: 'lipstick'), repo);
+      final kit = CommerceTestKit(
+        shop: FakeShop([
+          FakeProduct(
+            id: 5,
+            name: 'أحمر شفاه',
+            variants: [
+              FakeVariant(1, 'وردي', 20000, 2),
+              FakeVariant(2, 'أحمر', 45000, 9),
+              FakeVariant(3, 'بني', 45000, 0),
+            ],
+          ),
+        ]),
+      );
+      addTearDown(kit.session.close);
+      await kit.session.restore();
+      await pumpCatalog(tester, const ProductScreen(slug: 'lipstick'), repo, kit: kit);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text(Strings.productAddToCart));
-      await tester.pump();
-      expect(find.text(Strings.comingSoon), findsOneWidget);
-      await tester.pumpAndSettle(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+      expect(find.text(Strings.toastCartAdded), findsOneWidget);
+      expect(kit.cart.state.count, 1);
+      expect((await kit.store.readCart()).single.variantId, 1); // the default variant
+      expect(find.text(Strings.comingSoon), findsNothing);
+      await tester.pumpAndSettle(const Duration(seconds: 4));
 
       await tester.tap(find.byIcon(Icons.favorite_border).last);
-      await tester.pump();
-      expect(find.text(Strings.comingSoon), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.text(Strings.toastFavAdded), findsOneWidget);
+      expect(kit.favorites.state.ids, {5});
+      expect(find.byIcon(Icons.favorite), findsOneWidget);
     });
 
     testWidgets('details tab shows attributes', (tester) async {

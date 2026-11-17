@@ -1,49 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lamsa_app/app.dart';
-import 'package:lamsa_app/core/storage/token_storage.dart';
 import 'package:lamsa_app/core/strings.dart';
-import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
-import 'package:lamsa_app/features/auth/data/auth_api.dart';
-import 'package:lamsa_app/features/catalog/data/catalog_repository.dart';
 import 'package:lamsa_app/features/catalog/presentation/widgets/sections.dart';
-import 'package:lamsa_app/features/notifications/data/devices_api.dart';
-import 'package:lamsa_app/features/notifications/data/push_service.dart';
-import 'package:mocktail/mocktail.dart';
 
-import 'auth/auth_fakes.dart' show FakeGoogle;
-import 'catalog/catalog_fakes.dart';
-
-class _MockAuthApi extends Mock implements AuthApi {}
-
-class _MockDevicesApi extends Mock implements DevicesApi {}
-
-class _EmptyStorage implements TokenStorage {
-  @override
-  Future<StoredTokens?> read() async => null;
-
-  @override
-  Future<void> write(StoredTokens tokens) async {}
-
-  @override
-  Future<void> clear() async {}
-}
+import 'auth/auth_fakes.dart';
 
 void main() {
   late AppDependencies deps;
 
   setUp(() {
-    final authApi = _MockAuthApi();
-    final devices = _MockDevicesApi();
-    final push = PushService(devices);
-    deps = AppDependencies(
-      session: SessionCubit(api: authApi, storage: _EmptyStorage(), push: push),
-      authApi: authApi,
-      catalog: CatalogRepository(FakeCatalogApi()),
-      devicesApi: devices,
-      push: push,
-      google: FakeGoogle(),
-    );
+    final api = FakeAuthApi();
+    deps = makeDeps(session: makeSession(api: api), api: api);
   });
 
   testWidgets('boots to the RTL Arabic home with the bottom nav', (
@@ -83,25 +51,33 @@ void main() {
     expect(Localizations.localeOf(context), const Locale('ar'));
   });
 
-  testWidgets('guest tabs show an inline login prompt inside the shell', (
+  testWidgets('guests: Account is gated inline, Cart and Favorites are usable', (
     tester,
   ) async {
     await tester.pumpWidget(LamsaApp(deps: deps));
     await deps.session.restore();
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text(Strings.cart),
-      ),
-    );
-    await tester.pumpAndSettle();
+    Finder tab(String label) => find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text(label),
+        );
 
+    await tester.tap(tab(Strings.account));
+    await tester.pumpAndSettle();
     expect(find.text(Strings.gateTitle), findsOneWidget);
     expect(find.byType(NavigationBar), findsOneWidget);
     // Still inside the shell: no login screen was opened.
     expect(find.text(Strings.loginLead), findsNothing);
+
+    await tester.tap(tab(Strings.cart));
+    await tester.pumpAndSettle();
+    expect(find.text(Strings.gateTitle), findsNothing);
+    expect(find.text(Strings.cartEmptyTitle), findsOneWidget);
+
+    await tester.tap(tab(Strings.favorites));
+    await tester.pumpAndSettle();
+    expect(find.text(Strings.favoritesEmptyTitle), findsOneWidget);
   });
 
   testWidgets(

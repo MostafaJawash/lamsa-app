@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lamsa_app/core/theme/app_theme.dart';
+import 'package:lamsa_app/core/widgets/app_messenger.dart';
+import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
+import 'package:lamsa_app/features/cart/cubit/cart_cubit.dart';
 import 'package:lamsa_app/features/catalog/data/catalog_api.dart';
 import 'package:lamsa_app/features/catalog/data/catalog_repository.dart';
 import 'package:lamsa_app/features/catalog/data/list_filters.dart';
 import 'package:lamsa_app/features/catalog/data/models/catalog_models.dart';
+import 'package:lamsa_app/features/favorites/cubit/favorites_cubit.dart';
+import 'package:lamsa_app/features/favorites/presentation/favorites_screen.dart';
+
+import '../cart/cart_fakes.dart';
 
 ProductCard card(
   int id, {
@@ -104,6 +111,9 @@ class FakeCatalogApi implements CatalogApi {
   }
 
   @override
+  Future<List<ProductCard>> productsByIds(List<int> ids) async => const [];
+
+  @override
   Future<Facets> facets(List<(String, String)> query) {
     facetQueries.add(query);
     return _run('facets', () => facetsData, query);
@@ -126,21 +136,36 @@ String? queryValue(List<(String, String)> query, String name) {
   return null;
 }
 
-/// Pumps [child] in a themed Arabic/RTL app with the repository provided.
+/// Pumps [child] in a themed Arabic/RTL app with the repository provided, plus
+/// the cart and favorites cubits (guest mode over an empty fake shop unless
+/// [kit] says otherwise).
 Future<void> pumpCatalog(
   WidgetTester tester,
   Widget child,
-  CatalogRepository repo,
-) async {
+  CatalogRepository repo, {
+  CommerceTestKit? kit,
+}) async {
+  final k = kit ?? CommerceTestKit(shop: FakeShop([]));
   await tester.pumpWidget(
-    RepositoryProvider<CatalogRepository>.value(
-      value: repo,
-      child: MaterialApp(
-        theme: AppTheme.light,
-        locale: const Locale('ar'),
-        builder: (context, c) =>
-            Directionality(textDirection: TextDirection.rtl, child: c!),
-        home: child,
+    MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider<CatalogRepository>.value(value: repo),
+        RepositoryProvider<FavoritesDeps>.value(value: k.favoritesDeps),
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<SessionCubit>.value(value: k.session),
+          BlocProvider<CartCubit>.value(value: k.cart),
+          BlocProvider<FavoritesCubit>.value(value: k.favorites),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          scaffoldMessengerKey: rootMessengerKey,
+          locale: const Locale('ar'),
+          builder: (context, c) =>
+              Directionality(textDirection: TextDirection.rtl, child: c!),
+          home: child,
+        ),
       ),
     ),
   );

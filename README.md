@@ -2,7 +2,7 @@
 
 Customer mobile app for the Lamsa beauty store (Flutter, Android and iOS). Arabic only, RTL, light/dark following the system. Customer-facing only: nothing admin.
 
-Status: project structure and plumbing, plus **phase 1: catalog browsing** (home, categories, brands, new, sale, search, product detail) reading real data from the backend, all public/guest. **Phase 2: authentication** (phone + password, Google, session, forced password change, account tab). Cart, favorites, orders and notifications are still placeholders.
+Status: project structure and plumbing, plus **phase 1: catalog browsing** (home, categories, brands, new, sale, search, product detail) reading real data from the backend, all public/guest. **Phase 2: authentication** (phone + password, Google, session, forced password change, account tab) and **phase 3: cart and favorites** for guests and signed-in users, with the guest-data merge on sign-in. Orders/checkout and notifications are still placeholders.
 
 ## Stack
 
@@ -16,6 +16,7 @@ Status: project structure and plumbing, plus **phase 1: catalog browsing** (home
 | Push | `firebase_core`, `firebase_messaging` (Firebase project `lamsa-c3e53`) |
 | Google sign-in | `google_sign_in` 7.x, drop-in once OAuth clients exist (dev-mode fake until then) |
 | Links | `url_launcher` (https banner links, support phone/WhatsApp) |
+| Guest data | `shared_preferences` (guest cart and favorites, two small JSON blobs) |
 | Formatting | `intl`, number formatting only |
 | Fonts | IBM Plex Sans Arabic and Reem Kufi, bundled (same as the website) |
 | Tests | `flutter_test`, `mocktail`, `bloc_test` |
@@ -49,7 +50,9 @@ lib/
     auth/                session cubit, auth API, validation, error mapping, Google services, form cubits, screens, SessionGate
     shell/               bottom-nav frame (MainShell) and the "coming soon" tab body
     catalog/             data/ (models, API, repository cache, filters, variant rules), cubit/, presentation/
-    cart/ favorites/ orders/ account/   placeholder screens (cart/favorites/account show "coming soon" in the shell)
+    cart/                cart + favorites data layer (API, guest codec/store, merge), CartCubit, cart screen
+    favorites/           FavoritesCubit, favorites list cubit, heart button, favorites screen
+    orders/ account/     account is real (phase 2); orders is a placeholder
     notifications/       device registration API, push service, push deep-link parsing, placeholder
 test/                    widget test (boots to RTL home, guard redirect) plus unit tests
 tool/                    check_openapi.dart and its snapshot
@@ -76,8 +79,7 @@ Ports lamsa-web's catalog rules to native widgets; same backend, same business d
 **Money.** Backend decimal strings are shown in their own currency (`formatAmount`); nothing is converted or summed across SYP/USD.
 
 **Temporary / deferred.**
-- Heart and add-to-cart are visible and show a "قريبًا" snackbar (add-to-cart is genuinely disabled for sold-out products).
-- Favorites and Cart show "قريبًا" once signed in (guests see the login prompt).
+- Checkout and orders (a later phase): the cart ends with a disabled "إتمام الطلب قريبًا".
 - The web's shipping/pickup/cash "perks" block is checkout-related and left out.
 - No search history, live (as-you-type) search, or full-screen image zoom.
 
@@ -100,6 +102,24 @@ Mirrors lamsa-web's real auth rules with native screens.
 **Guest-data merge.** `GuestDataMerger` runs after every sign-in (skipped while a password change is pending, then run after it). It is a no-op until the cart/favorites phase adds device-held guest data and the real `/favorites/merge` + `/cart/merge` calls.
 
 **Other.** `SUPPORT_PHONE` / `SUPPORT_WHATSAPP` (optional defines) add call/WhatsApp buttons to the "forgot password" dialog and the disabled-account message; empty hides them. Banner links of type `url` now open in the browser (https only).
+
+## Cart and favorites (phase 3)
+
+Mirrors lamsa-web: the same backend rules, as a native client. **Cart and Favorites are usable by guests**; only Account is gated.
+
+**Guests (on the device).** The cart is only "what's in it": `(product_id, variant_id|0, quantity, slug)` lines, and favorites are product ids, in two small versioned JSON blobs in `shared_preferences` (same compact shape and limits as the web: 50 cart lines, quantity 1..99, 200 favorites; unreadable data decodes to empty). **Nothing about price, stock or availability is trusted on the device.** Every cart view and change goes through the public `POST /cart/preview`, which returns the cart as `GET /cart` would (live prices, per-line issues, per-currency totals). An add or quantity increase is saved only if the preview of the cart *with* the change has no issue on that line (`INSUFFICIENT_STOCK` with `available`, `OUT_OF_STOCK`, `QUANTITY_LIMIT_EXCEEDED` with `max`, `PRODUCT_NOT_FOUND`, `VARIANT_REQUIRED`...); decreasing and removing are always allowed. "تحديث السلة" applies the same fixes the backend applies to a stored cart (remove unavailable/out-of-stock lines, cap the others), read from the preview's issues. A guest heart-add checks the product is visible with one `GET /products?ids=` call.
+
+**Signed in.** The real endpoints: `GET /cart`, `POST/PATCH/DELETE /cart/items`, `DELETE /cart`, `POST /cart/resolve-issues`; `GET /favorites`, `GET /favorites/ids`, `PUT/DELETE /favorites/{id}`, `POST /favorites/{id}/move-to-cart`. Every cart call returns the whole cart. `CartCubit` and `FavoritesCubit` switch mode with the session; changes are serialized so the last answer is the newest state.
+
+**Merge on sign-in.** `CommerceMerger` (the real `GuestDataMerger`) runs after login, register, Google and complete-profile, and is skipped while a temporary password is pending (it runs after the password change). Favorites are merged first (`POST /favorites/merge`), then the cart (`POST /cart/merge`). The cart merge never fails because of one bad item: every line is reported `added`, `merged`, `capped` (stock or per-line limit) or `skipped` (not found, out of stock...), and the response is the whole cart. Local data is cleared only after both calls succeed. The shopper sees "أعدنا N منتجات إلى سلتك" (+ "عُدّلت بعض المنتجات وفقًا للمخزون المتوفر" if anything was capped or skipped); an empty merge shows nothing. A failed merge never blocks the sign-in: the local data stays and the merge is retried the next time the cart loads (opening the tab, next launch, next sign-in). Calls are single-flight.
+
+**Cart screen.** Lines (image, name linking to the product, brand and variant label, unit price with the struck regular price, quantity stepper debounced 300 ms with optimistic update and rollback, per-line total in the line's own currency, remove), the backend's issue under a line, an "update my cart" banner, a summary with subtotal / savings / total as **one row per currency (SYP and USD are never added)**, clear-cart with confirmation, empty and error states. There is no stored price in the cart (prices are always live), so the only conflicts are the issues and notices the backend returns. Checkout is a later phase: the screen ends with a disabled "إتمام الطلب قريبًا".
+
+**Favorites screen.** Newest first, product cards with "انقل إلى السلة" (disabled "نفدت الكمية" for out-of-stock favorites, which stay listed) and remove. Signed in: 24 per page with infinite scroll; guests: all at once. It follows the hearts (a favorite added elsewhere refreshes it).
+
+**Hearts and add-to-cart.** Hearts everywhere read the one favorites store (not the cards' `is_favorite`, so catalog calls stay anonymous and cacheable): every heart of a product agrees, taps are optimistic and roll back with the reason on failure. Add-to-cart on the product page has a quantity stepper (1..10, bounded by the backend's low-stock count), clamps on `INSUFFICIENT_STOCK`, and is genuinely disabled for sold-out items. The Cart and Favorites tab icons carry live count badges (99+ above 99), for guests (local data) and signed-in users (backend).
+
+**Dev note.** The backend puts its own port in media URLs; `resolveMediaUrl` now rewrites loopback media URLs to the configured host *and port*.
 
 ## Auth and token storage (differs from the other two clients)
 
