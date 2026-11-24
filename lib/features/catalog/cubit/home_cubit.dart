@@ -6,6 +6,28 @@ import 'package:lamsa_app/features/catalog/data/catalog_repository.dart';
 import 'package:lamsa_app/features/catalog/data/list_filters.dart';
 import 'package:lamsa_app/features/catalog/data/models/catalog_models.dart';
 
+/// Slug of the "gift boxes" category behind the home gifts tab. Taken from
+/// the backend's category data (`علبة هدايا`); the tab's label is read from
+/// that category's own name, so renaming it needs no app change.
+const giftsCategorySlug = 'demo-gifts';
+
+/// The gifts tab label: the category's own name once known, else null (the
+/// view falls back to a static label). A failed lookup is never an error.
+final class GiftsLabelCubit extends Cubit<String?> {
+  GiftsLabelCubit(this._repo) : super(null);
+
+  final CatalogRepository _repo;
+
+  Future<void> load() async {
+    try {
+      final c = await _repo.category(giftsCategorySlug);
+      if (!isClosed && c.name.trim().isNotEmpty) emit(c.name);
+    } on Object {
+      // Keep the fallback label.
+    }
+  }
+}
+
 final class HomeState extends Equatable {
   const HomeState({
     this.banners = const Section.loading(),
@@ -27,17 +49,25 @@ final class HomeState extends Equatable {
     Section<List<CategoryTile>>? categories,
     Section<List<ProductCard>>? onSale,
     Section<List<Brand>>? brands,
-  }) =>
-      HomeState(
-        banners: banners ?? this.banners,
-        newArrivals: newArrivals ?? this.newArrivals,
-        categories: categories ?? this.categories,
-        onSale: onSale ?? this.onSale,
-        brands: brands ?? this.brands,
-      );
+  }) => HomeState(
+    banners: banners ?? this.banners,
+    newArrivals: newArrivals ?? this.newArrivals,
+    categories: categories ?? this.categories,
+    onSale: onSale ?? this.onSale,
+    brands: brands ?? this.brands,
+  );
 
   @override
   List<Object?> get props => [banners, newArrivals, categories, onSale, brands];
+
+  /// Every product-bearing section failed because the backend was unreachable
+  /// (the banners always have a built-in fallback, so they do not count).
+  bool get allConnectionFailed => [
+    newArrivals,
+    categories,
+    onSale,
+    brands,
+  ].every((s) => s.isFailed && s.connection);
 }
 
 /// The home screen. Every section loads and fails on its own, so one slow or
@@ -53,10 +83,7 @@ final class HomeCubit extends Cubit<HomeState> {
   Future<void> load({bool refresh = false}) {
     if (!refresh) emit(const HomeState());
     return Future.wait([
-      _run(
-        _repo.banners(refresh: refresh),
-        (s) => state.copyWith(banners: s),
-      ),
+      _run(_repo.banners(refresh: refresh), (s) => state.copyWith(banners: s)),
       _run(
         _repo
             .products(
@@ -83,10 +110,7 @@ final class HomeCubit extends Cubit<HomeState> {
             .then((r) => r.page.items),
         (s) => state.copyWith(onSale: s),
       ),
-      _run(
-        _repo.brands(refresh: refresh),
-        (s) => state.copyWith(brands: s),
-      ),
+      _run(_repo.brands(refresh: refresh), (s) => state.copyWith(brands: s)),
     ]);
   }
 
@@ -98,7 +122,13 @@ final class HomeCubit extends Cubit<HomeState> {
       final data = await request;
       if (!isClosed) emit(apply(Section.loaded(data)));
     } on Object catch (e) {
-      if (!isClosed) emit(apply(Section.failed(messageOf(e))));
+      if (!isClosed) {
+        emit(
+          apply(
+            Section.failed(messageOf(e), connection: isConnectionFailure(e)),
+          ),
+        );
+      }
     }
   }
 }

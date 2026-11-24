@@ -74,7 +74,7 @@ final class _Entry {
 /// There is deliberately no disk persistence and no ETag revalidation yet.
 class CatalogRepository {
   CatalogRepository(this._api, {DateTime Function()? now})
-      : _now = now ?? DateTime.now;
+    : _now = now ?? DateTime.now;
 
   static const productsTtl = Duration(seconds: 45);
   static const detailTtl = Duration(seconds: 120);
@@ -147,7 +147,12 @@ class CatalogRepository {
               image = null;
             }
           }
-          return CategoryTile(id: c.id, name: c.name, slug: c.slug, image: image);
+          return CategoryTile(
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            image: image,
+          );
         }(),
     ]);
   }
@@ -164,11 +169,11 @@ class CatalogRepository {
       _cached('brands', taxonomyTtl, _api.brands, refresh: refresh);
 
   Future<Brand> brand(String slug, {bool refresh = false}) => _cached(
-        'brand:$slug',
-        taxonomyTtl,
-        () => _api.brand(slug),
-        refresh: refresh,
-      );
+    'brand:$slug',
+    taxonomyTtl,
+    () => _api.brand(slug),
+    refresh: refresh,
+  );
 
   Future<ProductListResult> products(
     ListScope scope,
@@ -176,51 +181,44 @@ class CatalogRepository {
     int page = 1,
     int pageSize = productPageSize,
     bool refresh = false,
-  }) =>
-      _cached(
-        'products:${_scopeKey(scope)}|${filters.cacheKey}|$page|$pageSize',
-        productsTtl,
-        () async {
-          final (value, applied, ignored) = await _withFilterRetry(
-            filters,
-            (f) => _api.products(
-              CatalogQuery.products(scope, f, page: page, pageSize: pageSize),
-            ),
-          );
-          return ProductListResult(
-            page: value,
-            applied: applied,
-            ignored: ignored,
-          );
-        },
-        refresh: refresh,
+  }) => _cached(
+    'products:${_scopeKey(scope)}|${filters.cacheKey}|$page|$pageSize',
+    productsTtl,
+    () async {
+      final (value, applied, ignored) = await _withFilterRetry(
+        filters,
+        (f) => _api.products(
+          CatalogQuery.products(scope, f, page: page, pageSize: pageSize),
+        ),
       );
+      return ProductListResult(page: value, applied: applied, ignored: ignored);
+    },
+    refresh: refresh,
+  );
 
   Future<FacetsResult> facets(
     ListScope scope,
     ListFilters filters, {
     bool refresh = false,
-  }) =>
-      _cached(
-        'facets:${_scopeKey(scope)}|${filters.cacheKey}',
-        productsTtl,
-        () async {
-          final (value, applied, _) = await _withFilterRetry(
-            filters,
-            (f) => _api.facets(CatalogQuery.facets(scope, f)),
-          );
-          return FacetsResult(facets: value, applied: applied);
-        },
-        refresh: refresh,
+  }) => _cached(
+    'facets:${_scopeKey(scope)}|${filters.cacheKey}',
+    productsTtl,
+    () async {
+      final (value, applied, _) = await _withFilterRetry(
+        filters,
+        (f) => _api.facets(CatalogQuery.facets(scope, f)),
       );
+      return FacetsResult(facets: value, applied: applied);
+    },
+    refresh: refresh,
+  );
 
-  Future<ProductDetail> product(String slug, {bool refresh = false}) =>
-      _cached(
-        'product:$slug',
-        detailTtl,
-        () => _api.product(slug),
-        refresh: refresh,
-      );
+  Future<ProductDetail> product(String slug, {bool refresh = false}) => _cached(
+    'product:$slug',
+    detailTtl,
+    () => _api.product(slug),
+    refresh: refresh,
+  );
 
   Future<List<ProductCard>> related(String slug, {bool refresh = false}) =>
       _cached(
@@ -231,12 +229,13 @@ class CatalogRepository {
       );
 
   static String _scopeKey(ListScope scope) => switch (scope) {
-        CategoryScope(:final slug) => 'category:$slug',
-        BrandScope(:final slug) => 'brand:$slug',
-        NewScope() => 'new',
-        SaleScope() => 'sale',
-        SearchScope() => 'search',
-      };
+    CategoryScope(:final slug) => 'category:$slug',
+    BrandScope(:final slug) => 'brand:$slug',
+    NewScope() => 'new',
+    SaleScope() => 'sale',
+    SearchScope() => 'search',
+    AllProductsScope() => 'all',
+  };
 
   /// Runs [request]; on `422 INVALID_FILTER` drops the rejected parameter
   /// and retries (at most [_maxFilterRetries] times).
@@ -246,7 +245,7 @@ class CatalogRepository {
   ) async {
     var current = filters;
     final ignored = <String>[];
-    for (var attempt = 0;; attempt++) {
+    for (var attempt = 0; ; attempt++) {
       try {
         return (await request(current), current, ignored);
       } on ApiError catch (e) {

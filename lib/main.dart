@@ -6,6 +6,7 @@ Future<void> main() async {
   final deps = AppDependencies.create();
   runApp(LamsaApp(deps: deps));
   // Not awaited: the splash route shows until the session is known.
+  await deps.theme.load();
   await deps.push.init();
   await deps.session.restore();
 }

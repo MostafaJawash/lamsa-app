@@ -6,6 +6,7 @@ import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
+import 'package:lamsa_app/core/theme/theme_cubit.dart';
 import 'package:lamsa_app/core/widgets/app_messenger.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
@@ -116,14 +117,53 @@ class _AccountViewState extends State<_AccountView> {
                 const SizedBox(height: Spacing.lg),
                 const _Menu(
                   items: [
-                    (Icons.receipt_long_outlined, Strings.accountOrders, Routes.orders),
-                    (Icons.notifications_none, Strings.notifications, Routes.notifications),
-                    (Icons.location_on_outlined, Strings.accountAddresses, Routes.addresses),
-                    (Icons.person_outline, Strings.accountProfile, Routes.profile),
+                    (
+                      Icons.receipt_long_outlined,
+                      Strings.accountOrders,
+                      Routes.orders,
+                    ),
+                    (
+                      Icons.notifications_none,
+                      Strings.notifications,
+                      Routes.notifications,
+                    ),
+                    (
+                      Icons.location_on_outlined,
+                      Strings.accountAddresses,
+                      Routes.addresses,
+                    ),
+                    (
+                      Icons.person_outline,
+                      Strings.accountProfile,
+                      Routes.profile,
+                    ),
                     (Icons.phone_outlined, Strings.accountPhone, Routes.phone),
-                    (Icons.lock_outline, Strings.accountPassword, Routes.password),
-                    (Icons.tune, Strings.prefsTitle, Routes.notificationSettings),
+                    (
+                      Icons.lock_outline,
+                      Strings.accountPassword,
+                      Routes.password,
+                    ),
+                    (
+                      Icons.tune,
+                      Strings.prefsTitle,
+                      Routes.notificationSettings,
+                    ),
                   ],
+                ),
+                const SizedBox(height: Spacing.lg),
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: BlocBuilder<ThemeCubit, ThemeMode>(
+                    builder: (context, mode) => SwitchListTile(
+                      secondary: Icon(
+                        Icons.dark_mode_outlined,
+                        color: context.lamsa.accent,
+                      ),
+                      title: const Text(Strings.darkMode),
+                      value: mode == ThemeMode.dark,
+                      onChanged: context.read<ThemeCubit>().setDark,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: Spacing.xl),
                 OutlinedButton.icon(

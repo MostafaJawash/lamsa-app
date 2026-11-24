@@ -9,6 +9,7 @@ import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/core/storage/token_storage.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/app_theme.dart';
+import 'package:lamsa_app/core/theme/theme_cubit.dart';
 import 'package:lamsa_app/core/widgets/app_messenger.dart';
 import 'package:lamsa_app/features/account/data/addresses_api.dart';
 import 'package:lamsa_app/features/account/data/addresses_repository.dart';
@@ -51,7 +52,9 @@ final class AppDependencies {
     required this.notificationsApi,
     required this.unread,
     required this.coordinator,
-  }) : router = buildRouter(session);
+    ThemeCubit? theme,
+  }) : theme = theme ?? ThemeCubit(),
+       router = buildRouter(session);
 
   /// Production wiring. The Dio/session/auth-API cycle is broken with lazy
   /// closures: the interceptor refreshes via [AuthApi] and reports a dead
@@ -76,7 +79,8 @@ final class AppDependencies {
     final store = SharedPrefsGuestStore();
     late final AppDependencies deps;
     final mergeService = GuestMergeService(cartApi, store);
-    void mergeToast(MergeOutcome o) => showMergeToast(o, () => deps.router.go(Routes.cart));
+    void mergeToast(MergeOutcome o) =>
+        showMergeToast(o, () => deps.router.go(Routes.cart));
     late final CartCubit cart;
     late final FavoritesCubit favorites;
     final ordersApi = OrdersApi(dio);
@@ -176,6 +180,7 @@ final class AppDependencies {
   final NotificationsApi notificationsApi;
   final UnreadCubit unread;
   final PushCoordinator coordinator;
+  final ThemeCubit theme;
   final GoRouter router;
 }
 
@@ -206,35 +211,40 @@ class LamsaApp extends StatelessWidget {
           BlocProvider.value(value: deps.cart),
           BlocProvider.value(value: deps.favorites),
           BlocProvider.value(value: deps.unread),
+          BlocProvider.value(value: deps.theme),
         ],
-        child: MaterialApp.router(
-          scaffoldMessengerKey: rootMessengerKey,
-          title: Strings.appName,
-          routerConfig: deps.router,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          // Arabic only: fixed locale, RTL forced everywhere. The delegates
-          // exist solely so built-in widgets render correct Arabic text.
-          localizationsDelegates: const [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          locale: const Locale('ar'),
-          supportedLocales: const [Locale('ar')],
-          builder: (context, child) => Directionality(
-            textDirection: TextDirection.rtl,
-            // A push that arrives in the foreground is drawn as a banner; when
-            // the app comes back, the badge and the token are refreshed.
-            child: ForegroundPushOverlay(
-              coordinator: deps.coordinator,
-              child: ResumeWatcher(
-                onResume: () {
-                  if (!deps.session.state.isAuthenticated) return;
-                  deps.unread.refresh().ignore();
-                  deps.push.registerForUser().ignore();
-                },
-                child: child ?? const SizedBox.shrink(),
+        child: BlocBuilder<ThemeCubit, ThemeMode>(
+          builder: (context, themeMode) => MaterialApp.router(
+            themeMode: themeMode,
+            debugShowCheckedModeBanner: false,
+            scaffoldMessengerKey: rootMessengerKey,
+            title: Strings.appName,
+            routerConfig: deps.router,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            // Arabic only: fixed locale, RTL forced everywhere. The delegates
+            // exist solely so built-in widgets render correct Arabic text.
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            locale: const Locale('ar'),
+            supportedLocales: const [Locale('ar')],
+            builder: (context, child) => Directionality(
+              textDirection: TextDirection.rtl,
+              // A push that arrives in the foreground is drawn as a banner; when
+              // the app comes back, the badge and the token are refreshed.
+              child: ForegroundPushOverlay(
+                coordinator: deps.coordinator,
+                child: ResumeWatcher(
+                  onResume: () {
+                    if (!deps.session.state.isAuthenticated) return;
+                    deps.unread.refresh().ignore();
+                    deps.push.registerForUser().ignore();
+                  },
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           ),
@@ -250,7 +260,9 @@ class LamsaApp extends StatelessWidget {
 void showMergeToast(MergeOutcome o, VoidCallback openCart) {
   if (o.restored == 0 && !o.adjusted) return;
   showToast(
-    o.restored > 0 ? Strings.toastMerged(o.restored) : Strings.toastMergedAdjusted,
+    o.restored > 0
+        ? Strings.toastMerged(o.restored)
+        : Strings.toastMergedAdjusted,
     sub: o.restored > 0 && o.adjusted ? Strings.toastMergedAdjusted : null,
     actionLabel: Strings.toastCartAction,
     onAction: openCart,

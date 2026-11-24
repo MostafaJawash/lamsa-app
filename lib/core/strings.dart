@@ -30,6 +30,18 @@ abstract final class Strings {
   static const loading = 'جارٍ التحميل...';
   static const back = 'رجوع';
   static const retry = 'إعادة المحاولة';
+  static const noInternetTitle = 'لا يوجد اتصال بالإنترنت';
+  static const noInternetText =
+      'تحقق من الواي فاي أو بيانات الجوال ثم حاول مرة أخرى.';
+  static const serverUnreachableTitle = 'تعذّر الوصول إلى المتجر';
+  static const serverUnreachableText =
+      'أنت متصل بالإنترنت لكن الخادم لا يستجيب الآن. حاول بعد قليل.';
+  static const homeTabMain = 'الرئيسية';
+  static const homeTabGifts = 'علب الهدايا';
+  static const homeTabAll = 'كل المنتجات';
+  static const giftsUnavailable = 'لا توجد علب هدايا حاليًا.';
+  static const emptyAllProducts = 'لا توجد منتجات حاليًا.';
+  static const darkMode = 'الوضع الداكن';
   static const emptyDefault = 'لا توجد عناصر لعرضها.';
   static const errorGeneric = 'حدث خطأ غير متوقع. حاول مرة أخرى.';
   static const errorNetwork =
@@ -159,14 +171,14 @@ abstract final class Strings {
   static const quantityMore = 'المزيد';
   static const lineTotal = 'المجموع';
   static String items(int n) => _plural(
-        n,
-        zero: 'لا توجد قطع',
-        one: 'قطعة واحدة',
-        two: 'قطعتان',
-        few: '$n قطع',
-        many: '$n قطعة',
-        other: '$n قطعة',
-      );
+    n,
+    zero: 'لا توجد قطع',
+    one: 'قطعة واحدة',
+    two: 'قطعتان',
+    few: '$n قطع',
+    many: '$n قطعة',
+    other: '$n قطعة',
+  );
 
   // Cart: line issues and notices (codes from the backend).
   static const issueUnavailable = 'لم يعد المنتج متوفرًا';
@@ -198,7 +210,8 @@ abstract final class Strings {
   static const toastMoved = 'نُقل إلى السلة';
   static const toastMovedAction = 'السلة';
   static String toastMerged(int n) => 'أعدنا ${products(n)} إلى سلتك';
-  static const toastMergedAdjusted = 'عُدّلت بعض المنتجات وفقًا للمخزون المتوفر';
+  static const toastMergedAdjusted =
+      'عُدّلت بعض المنتجات وفقًا للمخزون المتوفر';
   static String toastLow(int n) => 'لم يتبقَّ سوى $n';
   static String toastMax(int n) => 'الحد الأقصى $n';
   static const badgeOverflow = '99+';
@@ -304,8 +317,7 @@ abstract final class Strings {
   // Map picker.
   static const mapTitle = 'الموقع على الخريطة';
   static const mapOptional = 'اختياري';
-  static const mapHelp =
-      'اضغط على الخريطة لوضع الدبوس، ثم اسحبه لتعديل موقعه.';
+  static const mapHelp = 'اضغط على الخريطة لوضع الدبوس، ثم اسحبه لتعديل موقعه.';
   static const mapUseMyLocation = 'استخدم موقعي الحالي';
   static const mapRemoveLocation = 'إزالة الموقع';
   static const mapLocating = 'جارٍ تحديد موقعك…';
@@ -543,17 +555,17 @@ abstract final class Strings {
   static const notifBannerClose = 'إغلاق';
   static const notifJustNow = 'الآن';
   static String notifMinutesAgo(int n) => switch (n) {
-        1 => 'قبل دقيقة',
-        2 => 'قبل دقيقتين',
-        >= 3 && <= 10 => 'قبل $n دقائق',
-        _ => 'قبل $n دقيقة',
-      };
+    1 => 'قبل دقيقة',
+    2 => 'قبل دقيقتين',
+    >= 3 && <= 10 => 'قبل $n دقائق',
+    _ => 'قبل $n دقيقة',
+  };
   static String notifHoursAgo(int n) => switch (n) {
-        1 => 'قبل ساعة',
-        2 => 'قبل ساعتين',
-        >= 3 && <= 10 => 'قبل $n ساعات',
-        _ => 'قبل $n ساعة',
-      };
+    1 => 'قبل ساعة',
+    2 => 'قبل ساعتين',
+    >= 3 && <= 10 => 'قبل $n ساعات',
+    _ => 'قبل $n ساعة',
+  };
 
   // Notification preferences.
   static const prefsTitle = 'تفضيلات الإشعارات';
@@ -562,7 +574,8 @@ abstract final class Strings {
   static const prefsMarketingHint =
       'عروض المتجر وأخباره. عند إيقافها تُخفى أيضًا من صندوق الإشعارات.';
   static const prefsFavorites = 'تنبيهات المفضلة';
-  static const prefsFavoritesHint = 'عودة منتج مفضّل إلى المخزون أو انخفاض سعره.';
+  static const prefsFavoritesHint =
+      'عودة منتج مفضّل إلى المخزون أو انخفاض سعره.';
   static const prefsCartReminders = 'تذكير السلة';
   static const prefsCartRemindersHint = 'تذكير بسلة تركتها دون إتمام الطلب.';
   static const prefsOrderUpdates = 'تحديثات الطلب';

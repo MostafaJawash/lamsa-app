@@ -17,24 +17,25 @@ class ProductListScreen extends StatelessWidget {
   final ListScope scope;
 
   String? get _fixedTitle => switch (scope) {
-        NewScope() => Strings.newArrivals,
-        SaleScope() => Strings.sale,
-        _ => null,
-      };
+    NewScope() => Strings.newArrivals,
+    SaleScope() => Strings.sale,
+    _ => null,
+  };
 
   String? get _subtitle => switch (scope) {
-        NewScope() => Strings.subNew,
-        SaleScope() => Strings.subSale,
-        _ => null,
-      };
+    NewScope() => Strings.subNew,
+    SaleScope() => Strings.subSale,
+    _ => null,
+  };
 
   String get _emptyMessage => switch (scope) {
-        CategoryScope() => Strings.emptyCategory,
-        BrandScope() => Strings.emptyBrand,
-        NewScope() => Strings.emptyNew,
-        SaleScope() => Strings.emptySale,
-        SearchScope() => Strings.searchEmptyTitle,
-      };
+    CategoryScope() => Strings.emptyCategory,
+    BrandScope() => Strings.emptyBrand,
+    NewScope() => Strings.emptyNew,
+    SaleScope() => Strings.emptySale,
+    SearchScope() => Strings.searchEmptyTitle,
+    AllProductsScope() => Strings.emptyAllProducts,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -48,9 +49,8 @@ class ProductListScreen extends StatelessWidget {
               : BlocBuilder<ProductListCubit, ProductListState>(
                   buildWhen: (a, b) =>
                       a.category != b.category || a.brand != b.brand,
-                  builder: (context, state) => Text(
-                    state.category?.name ?? state.brand?.name ?? '',
-                  ),
+                  builder: (context, state) =>
+                      Text(state.category?.name ?? state.brand?.name ?? ''),
                 ),
           actions: [
             IconButton(
@@ -60,10 +60,7 @@ class ProductListScreen extends StatelessWidget {
             ),
           ],
         ),
-        body: ProductListBody(
-          emptyMessage: _emptyMessage,
-          subtitle: _subtitle,
-        ),
+        body: ProductListBody(emptyMessage: _emptyMessage, subtitle: _subtitle),
       ),
     );
   }
@@ -155,9 +152,7 @@ class _SearchHints extends StatelessWidget {
       children: [
         Text(
           Strings.searchTryHint,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium!
+          style: Theme.of(context).textTheme.bodyMedium!
               .copyWith(color: context.lamsa.muted),
         ),
         const SizedBox(height: Spacing.sm),

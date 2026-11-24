@@ -1,6 +1,6 @@
 # لمسة (lamsa_app)
 
-Customer mobile app for the Lamsa beauty store (Flutter, Android and iOS). Arabic only, RTL, light/dark following the system. Customer-facing only: nothing admin.
+Customer mobile app for the Lamsa beauty store (Flutter, Android and iOS). Arabic only, RTL, light by default with an optional dark mode. Customer-facing only: nothing admin.
 
 Status: project structure and plumbing, plus **phase 1: catalog browsing** (home, categories, brands, new, sale, search, product detail) reading real data from the backend, all public/guest. **Phase 2: authentication** (phone + password, Google, session, forced password change, account tab) and **phase 3: cart and favorites** for guests and signed-in users, with the guest-data merge on sign-in. **Phase 4: checkout, orders and account management** (addresses with an OpenStreetMap pin, real order placement, order history/detail with cancel and reorder, profile / phone / password / logout-everywhere). **Phase 5: push notifications** (device registration, foreground banner, tap-to-navigate, the notification inbox, preferences, unread badge). All of it is built and tested with mocked FCM; real push delivery has not been verified because the Firebase config files are still a manual step (see *Push notifications (phase 5)* below and its manual QA checklist).
 
@@ -82,6 +82,18 @@ Ports lamsa-web's catalog rules to native widgets; same backend, same business d
 **Temporary / deferred.**
 - The web's shipping/pickup/cash "perks" block is checkout-related and left out.
 - No search history, live (as-you-type) search, or full-screen image zoom.
+
+## Home tabs, theme default and the connection state (UX pass)
+
+**Home structure.** Home keeps its place in the bottom nav but now has an internal top `TabBar` with three independent tabs: **الرئيسية** (the original banners, rails, category tiles and brands, unchanged), the **gift boxes** tab and **كل المنتجات**. Each tab builds its own cubit the first time it is shown (`AutomaticKeepAlive` keeps it afterwards), so one tab failing never touches the others. Both product tabs are the existing `ProductListBody` + `ProductListCubit`, with the usual filter/sort sheet, infinite scroll and empty states; nothing was duplicated.
+
+**Gifts category.** The tab is `GET /products?category=demo-gifts` through the existing `CategoryScope`. `demo-gifts` (name `علبة هدايا`, top-level) is the gifts category in the backend's seed script and DB backup; it is the single constant `giftsCategorySlug` in `home_cubit.dart`. The tab label is the category's own name read from `GET /categories/{slug}` (static fallback `علب الهدايا`). If the category does not exist (fresh database: 404) or has no products, the tab shows the normal empty state `لا توجد علب هدايا حاليًا.`; it never crashes.
+
+**All products.** `AllProductsScope`: no scope params, no preset filters; the backend's default sort is newest first.
+
+**Theme default.** `MaterialApp.themeMode` is driven by `ThemeCubit` and starts **light** (it no longer follows the device). Light mode's scaffold background is the existing white `surface` token; no color value was changed, and dark mode is untouched. Dark is toggled from the icon in the home app bar or the switch in the account screen, and the choice is saved in `shared_preferences` (`theme_dark`).
+
+**Connection-error state.** `ConnectionErrorView` (`lib/core/widgets/connection_error_view.dart`) replaces the generic error when a load failed because the backend could not be reached at all (`ApiError.isConnectionFailure`: network error or timeout; 4xx/5xx answers keep the normal error). It asks `connectivity_plus` for the real network state, never guessing from the timeout: **no network** gives "لا يوجد اتصال بالإنترنت", **network but unreachable backend** gives "تعذّر الوصول إلى المتجر". Both have a retry button and a custom-painted icon (a few pulses, then still; static with reduced motion). Used by the shared product list body (category, brand, new, sale, search and the home product tabs), the categories and brands screens, and the main home tab when every section failed. Other screens (cart, orders, account, notifications...) still use the generic `ErrorView`; moving them over is a small follow-up.
 
 ## Authentication (phase 2)
 

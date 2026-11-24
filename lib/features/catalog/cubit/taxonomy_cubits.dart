@@ -15,7 +15,7 @@ final class CategoriesCubit extends Cubit<Section<List<CategoryTile>>> {
     try {
       emit(Section.loaded(await _repo.categoryTiles(refresh: refresh)));
     } on Object catch (e) {
-      emit(Section.failed(messageOf(e)));
+      emit(Section.failed(messageOf(e), connection: isConnectionFailure(e)));
     }
   }
 }
@@ -31,7 +31,7 @@ final class BrandsCubit extends Cubit<Section<List<Brand>>> {
     try {
       emit(Section.loaded(await _repo.brands(refresh: refresh)));
     } on Object catch (e) {
-      emit(Section.failed(messageOf(e)));
+      emit(Section.failed(messageOf(e), connection: isConnectionFailure(e)));
     }
   }
 }

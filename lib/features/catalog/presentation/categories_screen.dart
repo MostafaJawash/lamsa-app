@@ -5,6 +5,7 @@ import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
+import 'package:lamsa_app/core/widgets/connection_error_view.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
 import 'package:lamsa_app/features/catalog/cubit/load_status.dart';
 import 'package:lamsa_app/features/catalog/cubit/taxonomy_cubits.dart';
@@ -65,10 +66,14 @@ class _CategoriesBody extends StatelessWidget {
           }
           if (section.status == LoadStatus.failed) {
             return ScrollableMessage(
-              child: ErrorView(
-                message: section.error ?? Strings.errorGeneric,
-                onRetry: () => context.read<CategoriesCubit>().load(),
-              ),
+              child: section.connection
+                  ? ConnectionErrorView(
+                      onRetry: () => context.read<CategoriesCubit>().load(),
+                    )
+                  : ErrorView(
+                      message: section.error ?? Strings.errorGeneric,
+                      onRetry: () => context.read<CategoriesCubit>().load(),
+                    ),
             );
           }
           final tiles = section.data!;
@@ -112,7 +117,8 @@ class BrandsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => BrandsCubit(context.read<CatalogRepository>())..load(),
+      create: (context) =>
+          BrandsCubit(context.read<CatalogRepository>())..load(),
       child: Scaffold(
         appBar: AppBar(title: const Text(Strings.brands)),
         body: const _BrandsBody(),
@@ -135,10 +141,14 @@ class _BrandsBody extends StatelessWidget {
           }
           if (section.status == LoadStatus.failed) {
             return ScrollableMessage(
-              child: ErrorView(
-                message: section.error ?? Strings.errorGeneric,
-                onRetry: () => context.read<BrandsCubit>().load(),
-              ),
+              child: section.connection
+                  ? ConnectionErrorView(
+                      onRetry: () => context.read<BrandsCubit>().load(),
+                    )
+                  : ErrorView(
+                      message: section.error ?? Strings.errorGeneric,
+                      onRetry: () => context.read<BrandsCubit>().load(),
+                    ),
             );
           }
           final brands = section.data!;
@@ -184,7 +194,12 @@ class _BrandCard extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              BrandLogo(id: brand.id, name: brand.name, logo: brand.logo, size: 72),
+              BrandLogo(
+                id: brand.id,
+                name: brand.name,
+                logo: brand.logo,
+                size: 72,
+              ),
               const SizedBox(height: Spacing.sm),
               Text(
                 brand.name,

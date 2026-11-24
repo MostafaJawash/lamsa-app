@@ -5,6 +5,7 @@ import 'package:lamsa_app/core/router/routes.dart';
 import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
+import 'package:lamsa_app/core/widgets/connection_error_view.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
 import 'package:lamsa_app/features/catalog/cubit/product_list_cubit.dart';
 import 'package:lamsa_app/features/catalog/data/filter_chips.dart';
@@ -25,6 +26,7 @@ class ProductListBody extends StatefulWidget {
     this.subtitle,
     this.subtitleOf,
     this.idle,
+    this.notFoundMessage,
     super.key,
   });
 
@@ -39,6 +41,10 @@ class ProductListBody extends StatefulWidget {
 
   /// Shown before anything was searched (search only).
   final Widget? idle;
+
+  /// Overrides the scope's own "not found" copy (e.g. the home gifts tab,
+  /// where a missing category simply means "no gift boxes yet").
+  final String? notFoundMessage;
 
   @override
   State<ProductListBody> createState() => _ProductListBodyState();
@@ -76,15 +82,21 @@ class _ProductListBodyState extends State<ProductListBody> {
           case ListStatus.idle:
             return widget.idle ?? const SizedBox.shrink();
           case ListStatus.notFound:
-            return EmptyView(message: _notFoundMessage(cubit.scope));
+            return EmptyView(
+              message: widget.notFoundMessage ?? _notFoundMessage(cubit.scope),
+            );
           case ListStatus.failed:
             return RefreshIndicator(
               onRefresh: () => cubit.load(refresh: true),
               child: ScrollableMessage(
-                child: ErrorView(
-                  message: state.error ?? Strings.errorGeneric,
-                  onRetry: () => cubit.load(refresh: true),
-                ),
+                child: state.connectionFailure
+                    ? ConnectionErrorView(
+                        onRetry: () => cubit.load(refresh: true),
+                      )
+                    : ErrorView(
+                        message: state.error ?? Strings.errorGeneric,
+                        onRetry: () => cubit.load(refresh: true),
+                      ),
               ),
             );
           case ListStatus.loading when state.items.isEmpty:
@@ -101,10 +113,10 @@ class _ProductListBodyState extends State<ProductListBody> {
   }
 
   String _notFoundMessage(ListScope scope) => switch (scope) {
-        CategoryScope() => Strings.categoryNotFound,
-        BrandScope() => Strings.brandNotFound,
-        _ => Strings.errorGeneric,
-      };
+    CategoryScope() => Strings.categoryNotFound,
+    BrandScope() => Strings.brandNotFound,
+    _ => Strings.errorGeneric,
+  };
 
   Widget _content(
     BuildContext context,
@@ -119,13 +131,21 @@ class _ProductListBodyState extends State<ProductListBody> {
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         if (reloading)
-          const SliverToBoxAdapter(child: LinearProgressIndicator(minHeight: 2)),
-        SliverToBoxAdapter(child: _Header(
+          const SliverToBoxAdapter(
+            child: LinearProgressIndicator(minHeight: 2),
+          ),
+        SliverToBoxAdapter(
+          child: _Header(
             state: state,
             subtitle: widget.subtitleOf?.call(state) ?? widget.subtitle,
-          )),
-        SliverToBoxAdapter(child: _ChipsRow(state: state, cubit: cubit)),
-        SliverToBoxAdapter(child: _Controls(state: state, cubit: cubit)),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: _ChipsRow(state: state, cubit: cubit),
+        ),
+        SliverToBoxAdapter(
+          child: _Controls(state: state, cubit: cubit),
+        ),
         if (chips.isNotEmpty)
           SliverToBoxAdapter(
             child: Padding(
@@ -153,9 +173,7 @@ class _ProductListBodyState extends State<ProductListBody> {
               padding: const EdgeInsets.all(Spacing.pageGutter),
               child: Text(
                 Strings.invalidFilters,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall!
+                style: Theme.of(context).textTheme.bodySmall!
                     .copyWith(color: context.lamsa.warn),
               ),
             ),
@@ -188,15 +206,17 @@ class _ProductListBodyState extends State<ProductListBody> {
                     childCount: state.items.length,
                     (context, i) => ProductCardView(
                       product: state.items[i],
-                      onTap: () => context
-                          .push(Routes.productPath(state.items[i].slug)),
+                      onTap: () =>
+                          context.push(Routes.productPath(state.items[i].slug)),
                     ),
                   ),
                 );
               },
             ),
           ),
-        SliverToBoxAdapter(child: _Footer(state: state, cubit: cubit)),
+        SliverToBoxAdapter(
+          child: _Footer(state: state, cubit: cubit),
+        ),
         const SliverToBoxAdapter(child: SizedBox(height: Spacing.xl)),
       ],
     );
@@ -231,7 +251,12 @@ class _Header extends StatelessWidget {
           if (brand != null)
             Row(
               children: [
-                BrandLogo(id: brand.id, name: brand.name, logo: brand.logo, size: 64),
+                BrandLogo(
+                  id: brand.id,
+                  name: brand.name,
+                  logo: brand.logo,
+                  size: 64,
+                ),
                 const SizedBox(width: Spacing.md),
                 Expanded(
                   child: Column(
@@ -289,7 +314,8 @@ class _ChipsRow extends StatelessWidget {
       final facet = state.facets?.attributes
           .where((a) => a.key == def.key)
           .firstOrNull;
-      options = facet?.values?.map((v) => v.value).toList() ??
+      options =
+          facet?.values?.map((v) => v.value).toList() ??
           def.options ??
           const [];
     }
@@ -411,9 +437,7 @@ class _Empty extends StatelessWidget {
               Text(
                 Strings.emptyFilteredText,
                 textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium!
+                style: Theme.of(context).textTheme.bodyMedium!
                     .copyWith(color: context.lamsa.muted),
               ),
               const SizedBox(height: Spacing.lg),
@@ -441,9 +465,7 @@ class _Empty extends StatelessWidget {
               Text(
                 Strings.searchEmptyText,
                 textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium!
+                style: Theme.of(context).textTheme.bodyMedium!
                     .copyWith(color: context.lamsa.muted),
               ),
             ],

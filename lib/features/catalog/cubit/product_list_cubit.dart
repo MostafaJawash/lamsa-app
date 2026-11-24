@@ -20,6 +20,7 @@ final class ProductListState extends Equatable {
     this.loadingMore = false,
     this.loadMoreFailed = false,
     this.error,
+    this.connectionFailure = false,
     this.facets,
     this.facetsFailed = false,
     this.ignored = const [],
@@ -37,6 +38,10 @@ final class ProductListState extends Equatable {
   final bool loadingMore;
   final bool loadMoreFailed;
   final String? error;
+
+  /// The failure was "could not reach the backend" (shows the shared
+  /// connection state instead of the generic error).
+  final bool connectionFailure;
   final Facets? facets;
   final bool facetsFailed;
   final List<String> ignored;
@@ -54,46 +59,48 @@ final class ProductListState extends Equatable {
     bool? loadingMore,
     bool? loadMoreFailed,
     Object? error = _keep,
+    bool? connectionFailure,
     Object? facets = _keep,
     bool? facetsFailed,
     List<String>? ignored,
     Object? category = _keep,
     Object? brand = _keep,
-  }) =>
-      ProductListState(
-        status: status ?? this.status,
-        filters: filters ?? this.filters,
-        items: items ?? this.items,
-        total: total ?? this.total,
-        page: page ?? this.page,
-        loadingMore: loadingMore ?? this.loadingMore,
-        loadMoreFailed: loadMoreFailed ?? this.loadMoreFailed,
-        error: identical(error, _keep) ? this.error : error as String?,
-        facets: identical(facets, _keep) ? this.facets : facets as Facets?,
-        facetsFailed: facetsFailed ?? this.facetsFailed,
-        ignored: ignored ?? this.ignored,
-        category: identical(category, _keep)
-            ? this.category
-            : category as CategoryDetail?,
-        brand: identical(brand, _keep) ? this.brand : brand as Brand?,
-      );
+  }) => ProductListState(
+    status: status ?? this.status,
+    filters: filters ?? this.filters,
+    items: items ?? this.items,
+    total: total ?? this.total,
+    page: page ?? this.page,
+    loadingMore: loadingMore ?? this.loadingMore,
+    loadMoreFailed: loadMoreFailed ?? this.loadMoreFailed,
+    error: identical(error, _keep) ? this.error : error as String?,
+    connectionFailure: connectionFailure ?? this.connectionFailure,
+    facets: identical(facets, _keep) ? this.facets : facets as Facets?,
+    facetsFailed: facetsFailed ?? this.facetsFailed,
+    ignored: ignored ?? this.ignored,
+    category: identical(category, _keep)
+        ? this.category
+        : category as CategoryDetail?,
+    brand: identical(brand, _keep) ? this.brand : brand as Brand?,
+  );
 
   @override
   List<Object?> get props => [
-        status,
-        filters,
-        items,
-        total,
-        page,
-        loadingMore,
-        loadMoreFailed,
-        error,
-        facets,
-        facetsFailed,
-        ignored,
-        category,
-        brand,
-      ];
+    status,
+    filters,
+    items,
+    total,
+    page,
+    loadingMore,
+    loadMoreFailed,
+    error,
+    connectionFailure,
+    facets,
+    facetsFailed,
+    ignored,
+    category,
+    brand,
+  ];
 }
 
 /// One product list: a category, a brand, "new", "sale" or a search. Handles
@@ -106,13 +113,13 @@ final class ProductListCubit extends Cubit<ProductListState> {
     this.scope, {
     ListFilters initial = ListFilters.empty,
   }) : super(
-          ProductListState(
-            filters: initial,
-            status: scope is SearchScope && initial.value('q') == null
-                ? ListStatus.idle
-                : ListStatus.loading,
-          ),
-        );
+         ProductListState(
+           filters: initial,
+           status: scope is SearchScope && initial.value('q') == null
+               ? ListStatus.idle
+               : ListStatus.loading,
+         ),
+       );
 
   final CatalogRepository _repo;
   final ListScope scope;
@@ -132,6 +139,7 @@ final class ProductListCubit extends Cubit<ProductListState> {
         state.copyWith(
           status: ListStatus.loading,
           error: null,
+          connectionFailure: false,
           loadingMore: false,
           loadMoreFailed: false,
           ignored: const [],
@@ -171,7 +179,11 @@ final class ProductListCubit extends Cubit<ProductListState> {
       emit(
         head.notFound
             ? state.copyWith(status: ListStatus.notFound)
-            : state.copyWith(status: ListStatus.failed, error: messageOf(e)),
+            : state.copyWith(
+                status: ListStatus.failed,
+                error: messageOf(e),
+                connectionFailure: isConnectionFailure(e),
+              ),
       );
       return;
     }

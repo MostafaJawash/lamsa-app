@@ -51,7 +51,8 @@ final class ApiError implements Exception {
   factory ApiError.fromDio(DioException e) {
     final response = e.response;
     if (response != null) return ApiError.fromResponse(response);
-    final timedOut = e.type == DioExceptionType.connectionTimeout ||
+    final timedOut =
+        e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.sendTimeout ||
         e.type == DioExceptionType.receiveTimeout;
     return ApiError(
@@ -70,6 +71,10 @@ final class ApiError implements Exception {
   final int? status;
   final Object? details;
   final Duration? retryAfter;
+
+  /// The request never got an answer (no route, DNS, timeout): the only
+  /// failures the shared "no connection" state is shown for.
+  bool get isConnectionFailure => code == networkCode || code == timeoutCode;
 
   /// Backend Arabic message first, then local fallback by code, then generic.
   String get userMessage {
@@ -107,6 +112,15 @@ final class ApiError implements Exception {
 
   @override
   String toString() => 'ApiError($status $code)';
+}
+
+/// True when [error] is a failure to reach the backend at all.
+bool isConnectionFailure(Object error) {
+  if (error is ApiError) return error.isConnectionFailure;
+  if (error is DioException && error.error is ApiError) {
+    return (error.error! as ApiError).isConnectionFailure;
+  }
+  return false;
 }
 
 /// Maps any thrown object to a user-facing Arabic message.

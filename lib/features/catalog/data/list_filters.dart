@@ -61,6 +61,11 @@ final class SaleScope extends ListScope {
   List<(String, String)> get fixedParams => const [('on_sale', 'true')];
 }
 
+/// Every product, no scope params (the backend sorts newest first).
+final class AllProductsScope extends ListScope {
+  const AllProductsScope();
+}
+
 final class SearchScope extends ListScope {
   const SearchScope();
 }
@@ -105,10 +110,7 @@ final class ListFilters extends Equatable {
   /// Normalizes [input] for [scope]: invalid names/values are dropped, single
   /// valued names keep their last value, duplicates are removed and the
   /// result is sorted.
-  factory ListFilters.of(
-    Iterable<(String, String)> input,
-    ListScope scope,
-  ) {
+  factory ListFilters.of(Iterable<(String, String)> input, ListScope scope) {
     final single = <String, String>{};
     final multi = <(String, String)>{};
     for (final (rawName, rawValue) in input) {
@@ -126,8 +128,7 @@ final class ListFilters extends Equatable {
       ...multi,
     ];
     // A currency only qualifies a price range: alone it is no filter.
-    final hasRange =
-        out.any((p) => p.$1 == 'min_price' || p.$1 == 'max_price');
+    final hasRange = out.any((p) => p.$1 == 'min_price' || p.$1 == 'max_price');
     out.removeWhere((p) => p.$1 == 'price_currency' && !hasRange);
     out.sort((a, b) {
       final c = a.$1.compareTo(b.$1);
@@ -141,8 +142,7 @@ final class ListFilters extends Equatable {
   final List<(String, String)> pairs;
 
   static bool _singleValued(String name) =>
-      const {'min_price', 'max_price', 'on_sale', 'sort', 'q'}
-          .contains(name) ||
+      const {'min_price', 'max_price', 'on_sale', 'sort', 'q'}.contains(name) ||
       RegExp(r'^attr\.[a-z0-9_]+\.(min|max)$').hasMatch(name);
 
   static bool _valid(String name, String value, ListScope scope) {
@@ -176,8 +176,10 @@ final class ListFilters extends Equatable {
 
   // ---- reads ----
 
-  List<String> values(String name) =>
-      [for (final p in pairs) if (p.$1 == name) p.$2];
+  List<String> values(String name) => [
+    for (final p in pairs)
+      if (p.$1 == name) p.$2,
+  ];
 
   String? value(String name) {
     for (final p in pairs) {
@@ -191,8 +193,10 @@ final class ListFilters extends Equatable {
 
   /// Filters that narrow the result set (not `q`, not `sort`): the "active"
   /// ones shown as chips and counted on the filter button.
-  List<(String, String)> get active =>
-      [for (final p in pairs) if (p.$1 != 'q' && p.$1 != 'sort') p];
+  List<(String, String)> get active => [
+    for (final p in pairs)
+      if (p.$1 != 'q' && p.$1 != 'sort') p,
+  ];
 
   /// The sort in effect: relevance while searching, newest otherwise.
   SortKey get effectiveSort =>
@@ -201,7 +205,8 @@ final class ListFilters extends Equatable {
 
   // ---- changes (each returns a new, normalized instance) ----
 
-  ListFilters toggle(String name, String val, ListScope scope) => ListFilters.of(
+  ListFilters toggle(String name, String val, ListScope scope) =>
+      ListFilters.of(
         has(name, val)
             ? pairs.where((p) => !(p.$1 == name && p.$2 == val))
             : [...pairs, (name, val)],
@@ -210,13 +215,10 @@ final class ListFilters extends Equatable {
 
   /// Replaces every value of [name]; `null` removes it.
   ListFilters setValue(String name, String? val, ListScope scope) =>
-      ListFilters.of(
-        [
-          ...pairs.where((p) => p.$1 != name),
-          if (val != null) (name, val),
-        ],
-        scope,
-      );
+      ListFilters.of([
+        ...pairs.where((p) => p.$1 != name),
+        if (val != null) (name, val),
+      ], scope);
 
   ListFilters without(Iterable<(String, String)> remove, ListScope scope) {
     final drop = remove.toSet();
@@ -224,23 +226,25 @@ final class ListFilters extends Equatable {
   }
 
   /// Keeps only the search text and sort ("مسح الكل").
-  ListFilters cleared(ListScope scope) => ListFilters.of(
-        pairs.where((p) => p.$1 == 'q' || p.$1 == 'sort'),
-        scope,
-      );
+  ListFilters cleared(ListScope scope) =>
+      ListFilters.of(pairs.where((p) => p.$1 == 'q' || p.$1 == 'sort'), scope);
 
   /// Removes a parameter the backend rejected (`INVALID_FILTER`), together
   /// with its `.min`/`.max` companions.
   ListFilters dropParam(String name) => ListFilters._(
-        List.unmodifiable(
-          pairs.where((p) => p.$1 != name && !p.$1.startsWith('$name.')),
-        ),
-      );
+    List.unmodifiable(
+      pairs.where((p) => p.$1 != name && !p.$1.startsWith('$name.')),
+    ),
+  );
 
   /// Stable string for caches: equal filters give equal keys.
-  String get cacheKey =>
-      pairs.map((p) => '${Uri.encodeQueryComponent(p.$1)}='
-          '${Uri.encodeQueryComponent(p.$2)}').join('&');
+  String get cacheKey => pairs
+      .map(
+        (p) =>
+            '${Uri.encodeQueryComponent(p.$1)}='
+            '${Uri.encodeQueryComponent(p.$2)}',
+      )
+      .join('&');
 
   @override
   List<Object?> get props => [cacheKey];
@@ -254,13 +258,12 @@ abstract final class CatalogQuery {
     ListFilters filters, {
     int page = 1,
     int pageSize = productPageSize,
-  }) =>
-      _sorted([
-        ...scope.fixedParams,
-        ...filters.pairs,
-        ('page_size', '$pageSize'),
-        if (page > 1) ('page', '$page'),
-      ]);
+  }) => _sorted([
+    ...scope.fixedParams,
+    ...filters.pairs,
+    ('page_size', '$pageSize'),
+    if (page > 1) ('page', '$page'),
+  ]);
 
   /// Facets take the same filters but no sort, page or page size.
   static List<(String, String)> facets(ListScope scope, ListFilters filters) =>
@@ -271,16 +274,18 @@ abstract final class CatalogQuery {
       ]);
 
   static List<(String, String)> _sorted(List<(String, String)> pairs) =>
-      pairs
-        ..sort((a, b) {
-          final c = a.$1.compareTo(b.$1);
-          return c != 0 ? c : a.$2.compareTo(b.$2);
-        });
+      pairs..sort((a, b) {
+        final c = a.$1.compareTo(b.$1);
+        return c != 0 ? c : a.$2.compareTo(b.$2);
+      });
 
   /// `a=b&c=d`, percent-encoded (Arabic included); repeated names stay
   /// repeated, as the backend expects for OR filters.
   static String encode(List<(String, String)> pairs) => pairs
-      .map((p) => '${Uri.encodeQueryComponent(p.$1)}='
-          '${Uri.encodeQueryComponent(p.$2)}')
+      .map(
+        (p) =>
+            '${Uri.encodeQueryComponent(p.$1)}='
+            '${Uri.encodeQueryComponent(p.$2)}',
+      )
       .join('&');
 }

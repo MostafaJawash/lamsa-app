@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lamsa_app/core/theme/app_theme.dart';
+import 'package:lamsa_app/core/theme/theme_cubit.dart';
 import 'package:lamsa_app/core/widgets/app_messenger.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
 import 'package:lamsa_app/features/cart/cubit/cart_cubit.dart';
@@ -157,6 +158,7 @@ Future<void> pumpCatalog(
           BlocProvider<SessionCubit>.value(value: k.session),
           BlocProvider<CartCubit>.value(value: k.cart),
           BlocProvider<FavoritesCubit>.value(value: k.favorites),
+          BlocProvider<ThemeCubit>(create: (_) => ThemeCubit()),
         ],
         child: MaterialApp(
           theme: AppTheme.light,

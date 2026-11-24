@@ -30,9 +30,9 @@ abstract final class AppTheme {
       borderRadius: BorderRadius.circular(Radii.lg),
     );
     OutlineInputBorder border(Color color) => OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Radii.lg),
-          borderSide: BorderSide(color: color),
-        );
+      borderRadius: BorderRadius.circular(Radii.lg),
+      borderSide: BorderSide(color: color),
+    );
 
     return ThemeData(
       useMaterial3: true,
@@ -40,7 +40,10 @@ abstract final class AppTheme {
       colorScheme: scheme,
       fontFamily: LamsaFonts.body,
       textTheme: textTheme,
-      scaffoldBackgroundColor: c.bg,
+      // Light mode sits on the lightest token (white); dark keeps its own bg.
+      scaffoldBackgroundColor: brightness == Brightness.light
+          ? c.surface
+          : c.bg,
       extensions: [c],
       appBarTheme: AppBarTheme(
         backgroundColor: c.surface,
