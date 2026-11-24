@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lamsa_app/core/errors/api_error.dart';
 import 'package:lamsa_app/core/storage/token_storage.dart';
 import 'package:lamsa_app/features/auth/data/auth_api.dart';
 import 'package:lamsa_app/features/auth/data/guest_data_merger.dart';
@@ -156,6 +157,10 @@ final class SessionCubit extends Cubit<SessionState> {
 
   /// Loads `/users/me` (offline launches keep the session without a profile).
   /// Returns whether the profile is now available.
+  /// Whether the last [refreshUser] failed because the backend could not be
+  /// reached (the account screen then shows the connection state).
+  bool lastRefreshWasConnectionFailure = false;
+
   Future<bool> refreshUser() async {
     if (!state.isAuthenticated) return false;
     try {
@@ -163,8 +168,10 @@ final class SessionCubit extends Cubit<SessionState> {
       if (state.isAuthenticated) {
         emit(SessionState(SessionStatus.authenticated, user));
       }
+      lastRefreshWasConnectionFailure = false;
       return true;
-    } on Object {
+    } on Object catch (e) {
+      lastRefreshWasConnectionFailure = isConnectionFailure(e);
       return false;
     }
   }

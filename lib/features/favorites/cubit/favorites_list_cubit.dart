@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lamsa_app/core/errors/api_error.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
 import 'package:lamsa_app/features/cart/data/cart_api.dart';
 import 'package:lamsa_app/features/cart/data/cart_errors.dart';
@@ -19,6 +20,7 @@ final class FavoritesListState extends Equatable {
     this.page = 1,
     this.loadingMore = false,
     this.error,
+    this.connection = false,
   });
 
   final FavoritesLoad status;
@@ -27,6 +29,7 @@ final class FavoritesListState extends Equatable {
   final int page;
   final bool loadingMore;
   final String? error;
+  final bool connection;
 
   bool get hasMore => items.length < total;
 
@@ -37,6 +40,7 @@ final class FavoritesListState extends Equatable {
     int? page,
     bool? loadingMore,
     String? error,
+    bool? connection,
   }) =>
       FavoritesListState(
         status: status ?? this.status,
@@ -45,10 +49,12 @@ final class FavoritesListState extends Equatable {
         page: page ?? this.page,
         loadingMore: loadingMore ?? this.loadingMore,
         error: error,
+        connection: connection ?? this.connection,
       );
 
   @override
-  List<Object?> get props => [status, items, total, page, loadingMore, error];
+  List<Object?> get props =>
+      [status, items, total, page, loadingMore, error, connection];
 }
 
 /// The favorites tab's list, newest favorite first. Signed in: `GET
@@ -109,7 +115,13 @@ final class FavoritesListCubit extends Cubit<FavoritesListState> {
       _version = _favorites.state.version;
     } on Object catch (e) {
       if (!isClosed) {
-        emit(state.copyWith(status: FavoritesLoad.failed, error: CartError.from(e).message));
+        emit(
+          state.copyWith(
+            status: FavoritesLoad.failed,
+            error: CartError.from(e).message,
+            connection: isConnectionFailure(e),
+          ),
+        );
       }
     }
   }

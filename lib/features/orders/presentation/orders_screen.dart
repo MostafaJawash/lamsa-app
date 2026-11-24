@@ -7,6 +7,7 @@ import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
 import 'package:lamsa_app/core/widgets/app_messenger.dart';
+import 'package:lamsa_app/core/widgets/connection_error_view.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
 import 'package:lamsa_app/features/account/data/address_rules.dart';
 import 'package:lamsa_app/features/account/data/addresses_repository.dart';
@@ -115,6 +116,11 @@ class _OrdersViewState extends State<_OrdersView> {
       case OrdersLoad.loading:
         return const LoadingView(message: Strings.loading);
       case OrdersLoad.failed:
+        if (state.connection) {
+          return ConnectionErrorView(
+            onRetry: () => context.read<OrdersCubit>().load(),
+          );
+        }
         return ErrorView(
           message: state.error ?? Strings.ordersUnavailable,
           onRetry: () => context.read<OrdersCubit>().load(),
@@ -314,6 +320,11 @@ class _OrderDetailView extends StatelessWidget {
               return const LoadingView(message: Strings.loading);
             case OrderLoad.notFound:
             case OrderLoad.failed:
+              if (state.connection) {
+                return ConnectionErrorView(
+                  onRetry: () => context.read<OrderDetailCubit>().load(),
+                );
+              }
               return ErrorView(
                 message: state.error ?? Strings.ordersUnavailable,
                 onRetry: state.status == OrderLoad.failed

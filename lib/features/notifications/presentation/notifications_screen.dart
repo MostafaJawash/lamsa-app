@@ -6,6 +6,7 @@ import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
 import 'package:lamsa_app/core/widgets/app_messenger.dart';
+import 'package:lamsa_app/core/widgets/connection_error_view.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
 import 'package:lamsa_app/features/notifications/cubit/notification_cubits.dart';
 import 'package:lamsa_app/features/notifications/cubit/unread_cubit.dart';
@@ -110,6 +111,11 @@ class _InboxViewState extends State<_InboxView> {
             case InboxLoad.loading:
               return const LoadingView(message: Strings.loading);
             case InboxLoad.failed:
+              if (state.connection) {
+                return ConnectionErrorView(
+                  onRetry: () => context.read<InboxCubit>().load(),
+                );
+              }
               return ErrorView(
                 message: state.error ?? Strings.notifUnavailable,
                 onRetry: () => context.read<InboxCubit>().load(),

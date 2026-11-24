@@ -61,6 +61,26 @@ abstract final class AppTheme {
           side: BorderSide(color: c.line),
         ),
       ),
+      // The bar sits on `surface2`, one step off the page (white in light,
+      // bg in dark), so it never blends into the body. The selected pill is
+      // white in light (surface) and accentSoft in dark.
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: c.surface2,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        indicatorColor:
+            brightness == Brightness.light ? c.surface : c.accentSoft,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected) ? c.accent : c.muted,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => textTheme.labelMedium!.copyWith(
+            color: states.contains(WidgetState.selected) ? c.accent : c.muted,
+          ),
+        ),
+      ),
       dividerTheme: DividerThemeData(color: c.line, space: 1),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(

@@ -8,6 +8,7 @@ import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
 import 'package:lamsa_app/core/theme/theme_cubit.dart';
 import 'package:lamsa_app/core/widgets/app_messenger.dart';
+import 'package:lamsa_app/core/widgets/connection_error_view.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
 import 'package:lamsa_app/features/auth/data/models/auth_user.dart';
@@ -39,6 +40,7 @@ class _AccountView extends StatefulWidget {
 
 class _AccountViewState extends State<_AccountView> {
   bool _failed = false;
+  bool _connection = false;
   bool _loggingOut = false;
 
   @override
@@ -51,7 +53,12 @@ class _AccountViewState extends State<_AccountView> {
   Future<void> _load() async {
     setState(() => _failed = false);
     final ok = await context.read<SessionCubit>().refreshUser();
-    if (mounted && !ok) setState(() => _failed = true);
+    if (mounted && !ok) {
+      setState(() {
+        _failed = true;
+        _connection = context.read<SessionCubit>().lastRefreshWasConnectionFailure;
+      });
+    }
   }
 
   Future<void> _logoutAll() async {
@@ -103,6 +110,7 @@ class _AccountViewState extends State<_AccountView> {
         builder: (context, state) {
           final user = state.user;
           if (user == null) {
+            if (_failed && _connection) return ConnectionErrorView(onRetry: _load);
             return _failed
                 ? ErrorView(message: Strings.accountUnavailable, onRetry: _load)
                 : const LoadingView(message: Strings.loading);

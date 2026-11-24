@@ -20,6 +20,7 @@ final class OrdersState extends Equatable {
     this.page = 1,
     this.loadingMore = false,
     this.error,
+    this.connection = false,
   });
 
   final OrdersLoad status;
@@ -29,6 +30,7 @@ final class OrdersState extends Equatable {
   final int page;
   final bool loadingMore;
   final String? error;
+  final bool connection;
 
   bool get hasMore => items.length < total;
 
@@ -40,6 +42,7 @@ final class OrdersState extends Equatable {
     int? page,
     bool? loadingMore,
     String? error,
+    bool? connection,
   }) =>
       OrdersState(
         status: status ?? this.status,
@@ -49,10 +52,12 @@ final class OrdersState extends Equatable {
         page: page ?? this.page,
         loadingMore: loadingMore ?? this.loadingMore,
         error: error,
+        connection: connection ?? this.connection,
       );
 
   @override
-  List<Object?> get props => [status, filter, items, total, page, loadingMore, error];
+  List<Object?> get props =>
+      [status, filter, items, total, page, loadingMore, error, connection];
 }
 
 /// Order history, newest first, with the backend's own `status_group` filter
@@ -83,7 +88,13 @@ final class OrdersCubit extends Cubit<OrdersState> {
       );
     } on Object catch (e) {
       if (token != _token || isClosed) return;
-      emit(state.copyWith(status: OrdersLoad.failed, error: messageOf(e)));
+      emit(
+        state.copyWith(
+          status: OrdersLoad.failed,
+          error: messageOf(e),
+          connection: isConnectionFailure(e),
+        ),
+      );
     }
   }
 
@@ -125,6 +136,7 @@ final class OrderDetailState extends Equatable {
     this.order,
     this.busy = false,
     this.error,
+    this.connection = false,
   });
 
   final OrderLoad status;
@@ -133,22 +145,25 @@ final class OrderDetailState extends Equatable {
   /// A cancel or reorder is in flight.
   final bool busy;
   final String? error;
+  final bool connection;
 
   OrderDetailState copyWith({
     OrderLoad? status,
     OrderDetail? order,
     bool? busy,
     String? error,
+    bool? connection,
   }) =>
       OrderDetailState(
         status: status ?? this.status,
         order: order ?? this.order,
         busy: busy ?? this.busy,
         error: error,
+        connection: connection ?? this.connection,
       );
 
   @override
-  List<Object?> get props => [status, order, busy, error];
+  List<Object?> get props => [status, order, busy, error, connection];
 }
 
 /// What a reorder did, for the toast.
@@ -194,6 +209,7 @@ final class OrderDetailCubit extends Cubit<OrderDetailState> {
             : OrderDetailState(
                 status: notFound ? OrderLoad.notFound : OrderLoad.failed,
                 error: messageOf(e),
+                connection: isConnectionFailure(e),
               ),
       );
     }

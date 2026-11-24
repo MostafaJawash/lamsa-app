@@ -8,6 +8,7 @@ import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
 import 'package:lamsa_app/core/widgets/app_messenger.dart';
+import 'package:lamsa_app/core/widgets/connection_error_view.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
 import 'package:lamsa_app/features/cart/cubit/cart_cubit.dart';
 import 'package:lamsa_app/features/catalog/cubit/load_status.dart';
@@ -57,6 +58,10 @@ class _ProductBody extends StatelessWidget {
               child: ScrollableMessage(
                 child: state.notFound
                     ? const EmptyView(message: Strings.productNotFound)
+                    : state.connection
+                    ? ConnectionErrorView(
+                        onRetry: () => cubit.load(refresh: true),
+                      )
                     : ErrorView(
                         message: state.error ?? Strings.productUnavailable,
                         onRetry: () => cubit.load(refresh: true),

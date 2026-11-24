@@ -160,11 +160,14 @@ class _BrandsBody extends StatelessWidget {
           return GridView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(Spacing.pageGutter),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            // A fixed height that follows the text scale: a width-based aspect
+            // ratio cut the card off whenever the own-brand line or a larger
+            // system font made its content taller than the cell.
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisSpacing: Spacing.md,
               crossAxisSpacing: Spacing.md,
-              childAspectRatio: 1.05,
+              mainAxisExtent: _brandCardHeight(MediaQuery.textScalerOf(context)),
             ),
             itemCount: brands.length,
             itemBuilder: (context, i) => _BrandCard(brands[i]),
@@ -174,6 +177,10 @@ class _BrandsBody extends StatelessWidget {
     );
   }
 }
+
+/// Card padding (2x12) + logo (72) + gap (8), plus its three text lines (name,
+/// count, optional "own brand") at the user's text scale.
+double _brandCardHeight(TextScaler scaler) => 108 + scaler.scale(64);
 
 class _BrandCard extends StatelessWidget {
   const _BrandCard(this.brand);
@@ -209,6 +216,8 @@ class _BrandCard extends StatelessWidget {
               ),
               Text(
                 Strings.products(brand.productCount),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: theme.bodySmall!.copyWith(color: c.muted),
               ),
               if (brand.isOwnBrand)
@@ -216,6 +225,8 @@ class _BrandCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     Strings.brandOwn,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.labelSmall!.copyWith(color: c.accent),
                   ),
                 ),

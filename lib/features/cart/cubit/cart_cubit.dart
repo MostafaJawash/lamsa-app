@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lamsa_app/core/errors/api_error.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
 import 'package:lamsa_app/features/cart/data/cart_api.dart';
 import 'package:lamsa_app/features/cart/data/cart_errors.dart';
@@ -19,6 +20,7 @@ final class CartState extends Equatable {
     this.count = 0,
     this.lineErrors = const {},
     this.error,
+    this.connection = false,
   });
 
   final CartLoad status;
@@ -36,12 +38,16 @@ final class CartState extends Equatable {
 
   final String? error;
 
+  /// The last load failed because the backend could not be reached.
+  final bool connection;
+
   CartState copyWith({
     CartLoad? status,
     Cart? cart,
     int? count,
     Map<String, String>? lineErrors,
     Object? error = _keep,
+    bool? connection,
   }) =>
       CartState(
         status: status ?? this.status,
@@ -49,10 +55,12 @@ final class CartState extends Equatable {
         count: count ?? this.count,
         lineErrors: lineErrors ?? this.lineErrors,
         error: identical(error, _keep) ? this.error : error as String?,
+        connection: connection ?? this.connection,
       );
 
   @override
-  List<Object?> get props => [status, cart, count, lineErrors, error];
+  List<Object?> get props =>
+      [status, cart, count, lineErrors, error, connection];
 }
 
 const _keep = Object();
@@ -143,7 +151,13 @@ final class CartCubit extends Cubit<CartState> {
       }
     } on Object catch (e) {
       if (isClosed) return;
-      emit(state.copyWith(status: CartLoad.failed, error: CartError.from(e).message));
+      emit(
+        state.copyWith(
+          status: CartLoad.failed,
+          error: CartError.from(e).message,
+          connection: isConnectionFailure(e),
+        ),
+      );
     }
   }
 

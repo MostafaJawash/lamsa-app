@@ -177,8 +177,6 @@ class _MainTab extends StatelessWidget {
               bottom: Spacing.xxl,
             ),
             children: [
-              const QuickLinks(),
-              const SizedBox(height: Spacing.md),
               _Banners(state.banners),
               _NewRail(state.newArrivals),
               _Categories(state.categories),

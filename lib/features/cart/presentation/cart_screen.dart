@@ -9,6 +9,7 @@ import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
 import 'package:lamsa_app/core/widgets/app_messenger.dart';
+import 'package:lamsa_app/core/widgets/connection_error_view.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
 import 'package:lamsa_app/features/cart/cubit/cart_cubit.dart';
 import 'package:lamsa_app/features/cart/data/cart_errors.dart';
@@ -54,10 +55,12 @@ class _CartScreenState extends State<CartScreen> {
             final lines = state.cart.lines;
             if (state.status == CartLoad.failed && lines.isEmpty) {
               return ScrollableMessage(
-                child: ErrorView(
-                  message: Strings.cartUnavailable,
-                  onRetry: cubit.load,
-                ),
+                child: state.connection
+                    ? ConnectionErrorView(onRetry: cubit.load)
+                    : ErrorView(
+                        message: Strings.cartUnavailable,
+                        onRetry: cubit.load,
+                      ),
               );
             }
             if (lines.isEmpty) {

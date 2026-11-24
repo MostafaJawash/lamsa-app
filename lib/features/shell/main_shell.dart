@@ -25,36 +25,99 @@ class MainShell extends StatelessWidget {
         // Tapping the active tab returns to its root.
         onDestinationSelected: (i) =>
             shell.goBranch(i, initialLocation: i == shell.currentIndex),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+            icon: NavBounce(
+              selected: shell.currentIndex == 0,
+              child: Icon(shell.currentIndex == 0 ? Icons.home : Icons.home_outlined),
+            ),
             label: Strings.home,
           ),
           NavigationDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            selectedIcon: Icon(Icons.grid_view_rounded),
+            icon: NavBounce(
+              selected: shell.currentIndex == 1,
+              child: Icon(
+                shell.currentIndex == 1
+                    ? Icons.grid_view_rounded
+                    : Icons.grid_view_outlined,
+              ),
+            ),
             label: Strings.categories,
           ),
           NavigationDestination(
-            icon: _FavoritesIcon(selected: false),
-            selectedIcon: _FavoritesIcon(selected: true),
+            icon: NavBounce(
+              selected: shell.currentIndex == 2,
+              child: _FavoritesIcon(selected: shell.currentIndex == 2),
+            ),
             label: Strings.favorites,
           ),
           NavigationDestination(
-            icon: _CartIcon(selected: false),
-            selectedIcon: _CartIcon(selected: true),
+            icon: NavBounce(
+              selected: shell.currentIndex == 3,
+              child: _CartIcon(selected: shell.currentIndex == 3),
+            ),
             label: Strings.cart,
           ),
           NavigationDestination(
-            icon: _AccountIcon(selected: false),
-            selectedIcon: _AccountIcon(selected: true),
+            icon: NavBounce(
+              selected: shell.currentIndex == 4,
+              child: _AccountIcon(selected: shell.currentIndex == 4),
+            ),
             label: Strings.account,
           ),
         ],
       ),
     );
   }
+}
+
+/// The tab icon's selection animation: when [selected] turns true the icon
+/// pops (scale 0.7 -> 1 with an overshoot, 260 ms). Skipped entirely when the
+/// OS asks to reduce motion. Visual only: navigation is untouched.
+class NavBounce extends StatefulWidget {
+  const NavBounce({required this.selected, required this.child, super.key});
+
+  final bool selected;
+  final Widget child;
+
+  static const duration = Duration(milliseconds: 260);
+
+  @override
+  State<NavBounce> createState() => _NavBounceState();
+}
+
+class _NavBounceState extends State<NavBounce>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: NavBounce.duration,
+    value: 1,
+  );
+  late final Animation<double> _scale = Tween<double>(begin: .7, end: 1).animate(
+    CurvedAnimation(parent: _c, curve: Curves.easeOutBack),
+  );
+
+  @override
+  void didUpdateWidget(NavBounce old) {
+    super.didUpdateWidget(old);
+    if (widget.selected && !old.selected) {
+      if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+        _c.value = 1;
+      } else {
+        _c.forward(from: 0);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      ScaleTransition(scale: _scale, child: widget.child);
 }
 
 /// A count badge on a tab icon: hidden at 0, "99+" above 99. Live for guests

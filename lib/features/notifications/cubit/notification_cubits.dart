@@ -19,6 +19,7 @@ final class InboxState extends Equatable {
     this.unread = 0,
     this.loadingMore = false,
     this.error,
+    this.connection = false,
   });
 
   final InboxLoad status;
@@ -30,6 +31,7 @@ final class InboxState extends Equatable {
   final int unread;
   final bool loadingMore;
   final String? error;
+  final bool connection;
 
   bool get hasMore => items.length < total;
 
@@ -41,6 +43,7 @@ final class InboxState extends Equatable {
     int? unread,
     bool? loadingMore,
     String? error,
+    bool? connection,
   }) =>
       InboxState(
         status: status ?? this.status,
@@ -50,11 +53,12 @@ final class InboxState extends Equatable {
         unread: unread ?? this.unread,
         loadingMore: loadingMore ?? this.loadingMore,
         error: error,
+        connection: connection ?? this.connection,
       );
 
   @override
   List<Object?> get props =>
-      [status, items, total, page, unread, loadingMore, error];
+      [status, items, total, page, unread, loadingMore, error, connection];
 }
 
 /// The notification inbox: newest first, infinite scroll, mark one / all read.
@@ -86,7 +90,13 @@ final class InboxCubit extends Cubit<InboxState> {
       _badge.set(page.unreadCount);
     } on Object catch (e) {
       if (token != _token || isClosed) return;
-      emit(state.copyWith(status: InboxLoad.failed, error: messageOf(e)));
+      emit(
+        state.copyWith(
+          status: InboxLoad.failed,
+          error: messageOf(e),
+          connection: isConnectionFailure(e),
+        ),
+      );
     }
   }
 

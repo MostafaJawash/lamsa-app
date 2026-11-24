@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lamsa_app/core/money/money_format.dart';
 import 'package:lamsa_app/core/strings.dart';
+import 'package:lamsa_app/core/widgets/connection_error_view.dart';
 import 'package:lamsa_app/features/cart/data/guest_codec.dart';
 import 'package:lamsa_app/features/cart/presentation/cart_screen.dart';
 import 'package:lamsa_app/features/catalog/data/catalog_repository.dart';
@@ -115,7 +116,9 @@ void main() {
       await kit.store.writeCart(const [GuestCartItem(productId: 1, quantity: 1)]);
       kit.api.failing.add('preview');
       await openCart(tester);
-      expect(find.text(Strings.cartUnavailable), findsOneWidget);
+      // A network failure is the shared connection state, not the generic error.
+      expect(find.byType(ConnectionErrorView), findsOneWidget);
+      expect(find.text(Strings.cartUnavailable), findsNothing);
       kit.api.failing.clear();
       await tester.tap(find.text(Strings.retry));
       await tester.pumpAndSettle();

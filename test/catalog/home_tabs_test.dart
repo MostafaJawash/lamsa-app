@@ -6,6 +6,7 @@ import 'package:lamsa_app/core/widgets/connection_error_view.dart';
 import 'package:lamsa_app/features/catalog/cubit/home_cubit.dart';
 import 'package:lamsa_app/features/catalog/data/catalog_repository.dart';
 import 'package:lamsa_app/features/catalog/data/models/catalog_models.dart';
+import 'package:lamsa_app/features/catalog/presentation/categories_screen.dart';
 import 'package:lamsa_app/features/catalog/presentation/home_screen.dart';
 
 import 'catalog_fakes.dart';
@@ -138,5 +139,35 @@ void main() {
         : const ApiError(code: ApiError.networkCode, backendMessage: null);
     await pumpHome(tester);
     expect(find.text(Strings.noInternetTitle), findsOneWidget);
+  });
+
+  testWidgets('main tab no longer has the chip row; new/sale/brands stay reachable',
+      (tester) async {
+    api
+      ..brandsData = const [
+        Brand(id: 7, name: 'بيلا', slug: 'bella', productCount: 3),
+      ]
+      ..productsHandler = (q) => page([card(1, name: 'سيروم')]);
+    await pumpHome(tester);
+
+    // The three pills under the search bar are gone.
+    expect(find.byType(ActionChip), findsNothing);
+
+    // Entry points that remain on the main tab: "see all" for the new and
+    // sale rails, and the brands row's "all brands".
+    expect(find.text(Strings.seeAll), findsNWidgets(2));
+    expect(find.text(Strings.allBrands), findsOneWidget);
+  });
+
+  testWidgets('categories tab keeps its chip row', (tester) async {
+    tester.view.physicalSize = const Size(420, 3200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    api.categoriesData = const [
+      CategoryNode(id: 1, name: 'مكياج', slug: 'makeup', productCount: 4),
+    ];
+    await pumpCatalog(tester, const CategoriesScreen(), repo);
+    await tester.pumpAndSettle();
+    expect(find.byType(ActionChip), findsNWidgets(3));
   });
 }

@@ -14,6 +14,7 @@ final class ProductDetailState extends Equatable {
     this.related = const Section.loading(),
     this.notFound = false,
     this.error,
+    this.connection = false,
   });
 
   final LoadStatus status;
@@ -22,13 +23,14 @@ final class ProductDetailState extends Equatable {
   final Section<List<ProductCard>> related;
   final bool notFound;
   final String? error;
+  final bool connection;
 
   Variant? get variant =>
       product == null ? null : findVariant(product!, selectedVariantId);
 
   @override
   List<Object?> get props =>
-      [status, product, selectedVariantId, related, notFound, error];
+      [status, product, selectedVariantId, related, notFound, error, connection];
 }
 
 /// Product screen: the detail, the selected variant (all client-side, no
@@ -66,6 +68,7 @@ final class ProductDetailCubit extends Cubit<ProductDetailState> {
           status: LoadStatus.failed,
           notFound: e is ApiError && e.status == 404,
           error: messageOf(e),
+          connection: isConnectionFailure(e),
         ),
       );
       return;

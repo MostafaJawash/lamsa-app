@@ -8,6 +8,7 @@ import 'package:lamsa_app/core/strings.dart';
 import 'package:lamsa_app/core/theme/lamsa_colors.dart';
 import 'package:lamsa_app/core/theme/spacing.dart';
 import 'package:lamsa_app/core/widgets/app_messenger.dart';
+import 'package:lamsa_app/core/widgets/connection_error_view.dart';
 import 'package:lamsa_app/core/widgets/state_views.dart';
 import 'package:lamsa_app/features/auth/cubit/session_cubit.dart';
 import 'package:lamsa_app/features/cart/data/cart_api.dart';
@@ -110,10 +111,12 @@ class _FavoritesViewState extends State<_FavoritesView> {
           builder: (context, state) {
             if (state.status == FavoritesLoad.failed && state.items.isEmpty) {
               return ScrollableMessage(
-                child: ErrorView(
-                  message: Strings.favoritesUnavailable,
-                  onRetry: cubit.load,
-                ),
+                child: state.connection
+                    ? ConnectionErrorView(onRetry: cubit.load)
+                    : ErrorView(
+                        message: Strings.favoritesUnavailable,
+                        onRetry: cubit.load,
+                      ),
               );
             }
             if (state.status == FavoritesLoad.loading && state.items.isEmpty) {
